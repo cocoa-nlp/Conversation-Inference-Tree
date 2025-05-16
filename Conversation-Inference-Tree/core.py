@@ -4,46 +4,48 @@ from dotenv import load_dotenv
 import openai
 
 class InferenceTree:
-    #set summarizer
+    model = None
+    agent_dict = dict()
+    agent_output_dict = dict()
+    max_summary_nodes = 5
     load_dotenv()
-    # user = os.getenv('username')
 
     os.environ["TORCH_USE_CUDA_DSA"] = "1"
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     def set_summarizer(instruction: str, max_nodes=5):
-        #this is the agent that will summarize the agent commentary between each time step
-        #will pass the text input as a list of strings and the instruction string to the general agent function
-        pass
+        agent = {
+            "query": instruction
+        }
+        #adds the summarizer to the agent dictionary
+        InferenceTree.agent_dict["_summarizer"] = agent
 
     #set node agent
-    def set_node_agent(agent_name: str, query: str, text_input: str, target):
-        #this is the agent that will be used to process the nodes in the comment tree
-        #will pass the text input as a list of strings and the instruction string to the general agent function
-        #will also pass the node name and node query string to the general agent function
-        #NOTE: need to know how to define where the node will be applied in the comment tree
-        pass
+    def set_node_agent(agent_name: str, query: str, input: str):
+        agent = {
+            "query": query,
+            "input": input
+        }
+        #adds the agent to the agent dictionary
+        InferenceTree.agent_dict[agent_name] = agent
 
     def set_llm(model_type: str, model_name: str, model_parameters: dict):
-        global model
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
         if model_type == "huggingface":
             key = os.getenv('token')
+            # user = os.getenv('username')
 
             #save the user-defined model hyperparameters to an AutoConfig object, then initialize the model into a global variable
             config = AutoConfig.from_pretrained(model_name, **model_parameters)
             automodel = AutoModelForCausalLM.from_pretrained(model_name, config=config)
             autotokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = pipeline("text-generation", model=automodel, tokenizer=autotokenizer)
+            InferenceTree.model = pipeline("text-generation", model=automodel, tokenizer=autotokenizer)
         elif model_type == "openai":
             key = os.getenv('OPENAI_API_KEY')
-            model = {
+            InferenceTree.model = {
                 "model": model_name,
                 "config": model_parameters
             }
-
-
-        #constructor without the key
     
     def _general_agent(model, prompt): #--Handles the basic processing of all agents
         try:
@@ -55,9 +57,7 @@ class InferenceTree:
                 )
                 return response['choices'][0]['message']['content']
             else:
-                response = model.generate(
-                    input_ids=prompt
-                )
+                response = model(prompt)
                 return response
         except Exception as e:
             print(f"Error generating agent output: {e}")
