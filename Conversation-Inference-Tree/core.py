@@ -2,6 +2,8 @@ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, pipeli
 import os
 from dotenv import load_dotenv
 import openai
+from treelib import Node, Tree
+import praw
 
 class InferenceTree:
     model = None
@@ -20,15 +22,6 @@ class InferenceTree:
         #adds the summarizer to the agent dictionary
         InferenceTree.agent_dict["_summarizer"] = agent
 
-    #set node agent
-    def set_node_agent(agent_name: str, query: str, input: str):
-        agent = {
-            "query": query,
-            "input": input
-        }
-        #adds the agent to the agent dictionary
-        InferenceTree.agent_dict[agent_name] = agent
-
     def set_llm(model_type: str, model_name: str, model_parameters: dict):
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
         if model_type == "huggingface":
@@ -46,7 +39,11 @@ class InferenceTree:
                 "model": model_name,
                 "config": model_parameters
             }
-    
+    #process reddit thread
+    def process_thread(data, data_type: str, input_location: str, output_location: str):
+        pass
+
+class _Agent:
     def _general_agent(model, prompt): #--Handles the basic processing of all agents
         try:
             if isinstance(model, dict):
@@ -61,7 +58,29 @@ class InferenceTree:
                 return response
         except Exception as e:
             print(f"Error generating agent output: {e}")
+    
+        #set node agent
+    def set_node_agent(agent_name: str, query: str, input: str):
+        agent = {
+            "query": query,
+            "input": input
+        }
+        #adds the agent to the agent dictionary
+        InferenceTree.agent_dict[agent_name] = agent
 
-    #process reddit thread
-    def process_thread(data, data_type: str, input_location: str, output_location: str):
-        pass
+class _ConversationTree:
+    def __init__():
+        tree = Tree()
+
+    def set_tree(input, inputtype):
+        #options for inputtype: link, praw, psaw
+
+        if inputtype == "link":
+            #NOTE: needs secret and id
+            reddit = praw.Reddit(client_id='id', client_secret='secret', user_agent='ua')
+            submission = reddit.submission(url=input)
+
+            #allows for full expansion of threads
+            submission.comments.replace_more(limit=0)
+            input = submission
+        
