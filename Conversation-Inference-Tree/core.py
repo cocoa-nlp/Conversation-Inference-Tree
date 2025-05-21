@@ -69,11 +69,36 @@ class _Agent:
         InferenceTree.agent_dict[agent_name] = agent
 
 class _ConversationTree:
-    def __init__():
-        tree = Tree()
+    def __init__(self, submission):
+        self.tree = Tree()
+
+        submission.comments.replace_more(limit=None)
+
+        # Add root node (submission itself)
+        self.tree.create_node("root-node", submission.id, data={
+            #NOTE: fill out dictionary
+        })
+
+        # Start recursion from top-level comments
+        for top_level_comment in submission.comments:
+            self._recursive_node(top_level_comment, submission.id)
+    
+    #sets the subcomments of entry as child nodes, and repeats the chain
+    #does not handle setting the entry node itself, as that would make setting the root complicated
+    def _recursive_node(self, entry):
+        #entry will be a comment object with 0 or more subcomments
+
+        if len(entry.replies) != 0:
+            for child in entry.replies:
+                self.tree.create_node(child.body[:30], child.id, parent=entry.id, data={
+                    #NOTE: fill out dictionary
+                })
+                
+                self.tree = self._recursive_node(child)
+        
 
     def set_tree(input, inputtype):
-        #options for inputtype: link, praw, psaw
+        #options for inputtype: link, praw, psaw(for future)
 
         if inputtype == "link":
             #NOTE: needs secret and id
@@ -84,3 +109,8 @@ class _ConversationTree:
             submission.comments.replace_more(limit=0)
             input = submission
         
+        #translate other types of input into praw object
+
+        #set root node
+
+        #for each comment in submission
