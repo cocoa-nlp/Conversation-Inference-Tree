@@ -43,7 +43,7 @@ class InferenceTree:
     def process_thread(data, data_type: str, input_location: str, output_location: str):
         pass
 
-class _Agent:
+class _AgentManager:
     def _general_agent(model, prompt): #--Handles the basic processing of all agents
         try:
             if isinstance(model, dict):
@@ -94,9 +94,11 @@ class _ConversationTree:
                     #NOTE: fill out dictionary
                 })
                 
-                self.tree = self._recursive_node(child)
+                # self.tree = self._recursive_node(child)
+                self._recursive_node(child)
         
 
+    #NOTE: change name to convertDataType?
     def set_tree(input, inputtype):
         #options for inputtype: link, praw, psaw(for future)
 
