@@ -38,11 +38,13 @@ for post in subreddit.hot(limit=10):
     }
 
     # Get top 10 comments
-    for comment in post.comments[:10]:
+    for comment in post.comments.list():#[:10]:  # First 20 comments at any depth
         post_data["comments"].append({
             "author": comment.author.name if comment.author else "[deleted]",
             "body": comment.body,
-            "score": comment.score
+            "id": comment.id,
+            "parent_id": comment.parent_id,
+            "depth": comment.depth
         })
 
     # Write to JSON file
