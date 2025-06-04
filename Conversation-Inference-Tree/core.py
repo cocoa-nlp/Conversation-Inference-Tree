@@ -6,7 +6,7 @@ from treelib import Node, Tree
 import praw
 
 class InferenceTree:
-    model = None
+    llm = None
     agent_dict = dict()
     agent_output_dict = dict()
     max_summary_nodes = 5
@@ -25,6 +25,7 @@ class InferenceTree:
     def set_llm(model_type: str, model_name: str, model_parameters: dict):
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
         if model_type == "huggingface":
+            #This code runs if the llm is from huggingface.co or a local huggingface model
             key = os.getenv('token')
             # user = os.getenv('username')
 
@@ -32,19 +33,29 @@ class InferenceTree:
             config = AutoConfig.from_pretrained(model_name, **model_parameters)
             automodel = AutoModelForCausalLM.from_pretrained(model_name, config=config)
             autotokenizer = AutoTokenizer.from_pretrained(model_name)
-            InferenceTree.model = pipeline("text-generation", model=automodel, tokenizer=autotokenizer)
+            InferenceTree.llm = pipeline("text-generation", model=automodel, tokenizer=autotokenizer)
         elif model_type == "openai":
+            #This code runs if the llm is accessed throught the openai api
             key = os.getenv('OPENAI_API_KEY')
-            InferenceTree.model = {
+            InferenceTree.llm = {
                 "model": model_name,
                 "config": model_parameters
             }
     #process reddit thread
     def process_thread(data, data_type: str, input_location: str, output_location: str):
         pass
+class _Agent:
+    global model
+    global query
+    def __init__(self, query):
+        self.query = query
 
-class _AgentManager:
-    def _general_agent(model, prompt): #--Handles the basic processing of all agents
+    def process(prompt, model): #--Handles the basic processing of all agents
+        
+        #create the prompt by bringing toghether the question the agent will ask(query), 
+        # and the textual input the query is focused on.
+
+
         try:
             if isinstance(model, dict):
                 response = openai.ChatCompletion.create(
@@ -59,14 +70,8 @@ class _AgentManager:
         except Exception as e:
             print(f"Error generating agent output: {e}")
     
-        #set node agent
-    def set_node_agent(agent_name: str, query: str, input: str):
-        agent = {
-            "query": query,
-            "input": input
-        }
         #adds the agent to the agent dictionary
-        InferenceTree.agent_dict[agent_name] = agent
+        # InferenceTree.agent_dict[agent_name] = agent
 
 class _ConversationTree:
     def __init__(self, submission):
@@ -97,9 +102,7 @@ class _ConversationTree:
                 # self.tree = self._recursive_node(child)
                 self._recursive_node(child)
         
-
-    #NOTE: change name to convertDataType?
-    def set_tree(input, inputtype):
+    def unify_datatype(input, inputtype):
         #options for inputtype: link, praw, psaw(for future)
 
         if inputtype == "link":
