@@ -31,4 +31,4 @@ class _RedditWrapper:
             self.depth = 0
 
         else:
-            raise TypeError("Unsupported source type for RedditWrapper")
+            raise TypeError(f"{source} is an unsupported data type for RedditWrapper")

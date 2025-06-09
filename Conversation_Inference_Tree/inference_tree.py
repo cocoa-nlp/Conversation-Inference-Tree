@@ -47,10 +47,8 @@ class InferenceTree:
                 "config": model_parameters
             }
     #process reddit thread NOTE: input_location and output_location not implemented yet
-    def process_thread(data, data_type: str, input_location: str = "", output_location: str = ""):
+    def process_thread(self, data, data_type: str, input_location: str = "", output_location: str = ""):
         #If input_location is not equal to "", pull data from json files
-        print(f"input \"data\" data type: {data}")
         thread = _Tree(data)
-
-        print(thread)
+        print("Tree initialization complete")
         exit()

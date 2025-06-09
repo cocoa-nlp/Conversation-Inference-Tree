@@ -20,8 +20,7 @@ for thread in threads:
     inference_object.set_llm(model, "huggingface")
 
     #Set agents
-    print(f"thread data type: {type(thread)}")
-    summary = inference_object.process_thread(thread)
+    summary = inference_object.process_thread(thread, data_type="json")
 
     text_file = open("summaries/" + thread["id"] + ".txt", "w")
     text_file.write(summary)
