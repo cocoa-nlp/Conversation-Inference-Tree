@@ -27,8 +27,10 @@ class InferenceTree:
         agent = _Agent(instruction, depth)
         InferenceTree.agent_list.append(agent)
 
+#NOTE: bring outside of InferenceTree?
     def set_llm(model_name: str, model_type: str, model_parameters: dict):
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
+        #NOTE: Check out python logging package
         if model_type == "huggingface":
             #This code runs if the llm is from huggingface.co or a local huggingface model
             key = os.getenv('token')
@@ -38,6 +40,7 @@ class InferenceTree:
             config = AutoConfig.from_pretrained(model_name, **model_parameters)
             automodel = AutoModelForCausalLM.from_pretrained(model_name, config=config)
             autotokenizer = AutoTokenizer.from_pretrained(model_name)
+            #NOTE: Change to instance-level variable
             InferenceTree.llm = pipeline("text-generation", model=automodel, tokenizer=autotokenizer)
         elif model_type == "openai":
             #This code runs if the llm is accessed throught the openai api
@@ -50,5 +53,6 @@ class InferenceTree:
     def process_thread(self, data, data_type: str, input_location: str = "", output_location: str = ""):
         #If input_location is not equal to "", pull data from json files
         thread = _Tree(data)
+
         print("Tree initialization complete")
         exit()

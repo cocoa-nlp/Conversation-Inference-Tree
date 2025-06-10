@@ -4,20 +4,21 @@ from .reddit_wrapper import _RedditWrapper
 class _Tree:
     def __init__(self, raw_submission):
         self.tree = Tree()
+        #NOTE: try changing to dictionary for fast look-up
         self.wrapped_comments = []
 
         # raw_submission.comments.replace_more(limit=None) NOTE: Figure out if this is still needed
 
         # Pull comments out of the submission object into a wrappable list
         if isinstance(raw_submission, dict):
-            top_comments = raw_submission.get("comments", [])
+            comments = raw_submission.get("comments", [])
         else:
-            top_comments = raw_submission.comments        
+            comments = raw_submission.comments        
 
         #this will become the root node
         submission = _RedditWrapper(raw_submission)
         #get reddit_wrappers for all comments
-        for comment in top_comments:
+        for comment in comments:
             self.wrapped_comments.append(_RedditWrapper(comment))
 
         # Add root node (submission itself)

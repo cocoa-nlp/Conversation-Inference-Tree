@@ -6,7 +6,6 @@ class _RedditWrapper:
         Initialize with either a PRAW Comment object or a dict (from JSON).
         Expected attributes: id, body, author, parent_id, depth
         """
-        print(type(source))
         if isinstance(source, dict):
             self.id = source.get('id')
             self.body = source.get('body')
