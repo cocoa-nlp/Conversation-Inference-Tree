@@ -32,6 +32,6 @@ class _Tree:
 
         #NOTE: Considering changing to a parent lookup dictionary for wrapped_comments to avoid exponential compute costs
         for child in [i for i in self.wrapped_comments if i.parent_id == parent_id]:
-            self.tree.create_node(child.body[:30], child.id, parent=entry.id, data=entry)
+            self.tree.create_node(child.id, child.id, parent=entry.id, data=entry)
             
             self._recursive_node(child, child.id)

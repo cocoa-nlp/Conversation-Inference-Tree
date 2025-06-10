@@ -13,7 +13,7 @@ for name in file_names:
         threads.append(json.load(f))
 
 
-model = "llama-3.2-3b-Instruct"
+model = "meta-llama/Llama-3.2-3B-Instruct"
 #Threads stands for the list of RedditWrapper objects
 inference_object = InferenceTree()
 for thread in threads:

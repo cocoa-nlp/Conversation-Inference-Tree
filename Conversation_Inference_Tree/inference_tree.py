@@ -25,7 +25,7 @@ class InferenceTree:
 
     def set_agent(instruction: str, depth: int, max_nodes=5): #NOTE: remove maxnodes?
         agent = _Agent(instruction, depth)
-        InferenceTree.agent_list.append(agent)
+        InferenceTree.agent_list.append(agent) 
 
 #NOTE: bring outside of InferenceTree?
     def set_llm(model_name: str, model_type: str, model_parameters: dict):
@@ -52,7 +52,8 @@ class InferenceTree:
     #process reddit thread NOTE: input_location and output_location not implemented yet
     def process_thread(self, data, data_type: str, input_location: str = "", output_location: str = ""):
         #If input_location is not equal to "", pull data from json files
-        thread = _Tree(data)
-
+        conversation_tree = _Tree(data)
+        
+        conversation_tree.tree.show()
         print("Tree initialization complete")
         exit()

@@ -7,10 +7,15 @@ class _RedditWrapper:
         Expected attributes: id, body, author, parent_id, depth
         """
         if isinstance(source, dict):
+            parent_id = source.get('parent_id')
+            if parent_id is not None:
+                parent_id = parent_id.split("_")[1]
+
+            
             self.id = source.get('id')
             self.body = source.get('body')
             self.author = source.get('author')
-            self.parent_id = source.get('parent_id')
+            self.parent_id = parent_id
             self.depth = source.get('depth')
         
         elif hasattr(source, 'body') and hasattr(source, 'parent_id'):
