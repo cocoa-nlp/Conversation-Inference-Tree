@@ -8,15 +8,17 @@ class _RedditWrapper:
         """
         if isinstance(source, dict):
             parent_id = source.get('parent_id')
+            depth = -1
             if parent_id is not None:
                 parent_id = parent_id.split("_")[1]
+                depth = source.get('depth')
 
             
             self.id = source.get('id')
             self.body = source.get('body')
             self.author = source.get('author')
             self.parent_id = parent_id
-            self.depth = source.get('depth')
+            self.depth = depth
         
         elif hasattr(source, 'body') and hasattr(source, 'parent_id'):
             # Likely a Comment object

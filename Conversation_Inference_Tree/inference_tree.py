@@ -28,10 +28,11 @@ class InferenceTree:
         InferenceTree.agent_list.append(agent) 
 
 #NOTE: bring outside of InferenceTree?
-    def set_llm(model_name: str, model_type: str, model_parameters: dict):
+    def set_llm(self, model_name: str, model_type: str, model_parameters: dict = {}):
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
         #NOTE: Check out python logging package
-        if model_type == "huggingface":
+        if model_type == "hf":
+            print("Model type did equal huggingface")
             #This code runs if the llm is from huggingface.co or a local huggingface model
             key = os.getenv('token')
             # user = os.getenv('username')
@@ -54,6 +55,5 @@ class InferenceTree:
         #If input_location is not equal to "", pull data from json files
         conversation_tree = _Tree(data)
         
-        conversation_tree.tree.show()
         print("Tree initialization complete")
         exit()

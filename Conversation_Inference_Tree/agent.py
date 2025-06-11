@@ -1,29 +1,17 @@
-import openai
-
 class _Agent:
-    global query
-    def __init__(self, query, depth):
+    def __init__(self, query: str, depth: int):
         self.query = query
         self.depth = depth
     
-    def get_depth(): return _Agent.depth
+    #Used for matching comments to agents in inference_tree.py function process_thread
+    def get_depth(self): return self.depth
 
-    def process(prompt, model): #--Handles the basic processing of all agents
-        
+    def form_prompt(self, input: str):
         #create the prompt by bringing toghether the question the agent will ask(query), 
-        # and the textual input the query is focused on.
+        #and the textual input the query is focused on.        
+        message = [
+            {"role": "system", "content": self.query},
+            {"role": "user", "content": input},
+        ]
+        return message
 
-
-        try:
-            if isinstance(model, dict):
-                response = openai.ChatCompletion.create(
-                    model=model["model"],
-                    message=prompt,
-                    config=model["config"]
-                )
-                return response['choices'][0]['message']['content']
-            else:
-                response = model(prompt)
-                return response#NOTE: check to see if this is the correct object to return
-        except Exception as e:
-            print(f"Error generating agent output: {e}")        
