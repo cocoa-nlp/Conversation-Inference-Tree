@@ -28,8 +28,6 @@ class _Tree:
     #sets the subcomments of entry as child nodes, and repeats the chain
     #does not handle setting the entry node itself, as that would make setting the root complicated
     def _recursive_node(self, entry, parent_id):
-        #entry will be a comment object with 0 or more subcomments
-
         #NOTE: Considering changing to a parent lookup dictionary for wrapped_comments to avoid exponential compute costs
         for child in [i for i in self.wrapped_comments if i.parent_id == parent_id]:
             self.tree.create_node(child.id, child.id, parent=entry.id, data=entry)

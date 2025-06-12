@@ -22,7 +22,7 @@ with open("scraped_reddit_thread.json", "r", encoding="utf-8") as f:
     thread = json.load(f)
 
 #Instantiate the InferenceTree object.  Make sure to do this outside of any loops!
-inference_object = InferenceTree
+inference_object = InferenceTree()
 #Set the llm that will be used for generation by inference_object's internal logic.
 inference_object.set_llm(model_name="meta-llama/Llama-3.2-3B-Instruct", model_type="hf")
 

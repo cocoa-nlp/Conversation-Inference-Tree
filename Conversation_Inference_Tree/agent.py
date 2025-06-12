@@ -1,7 +1,8 @@
 class _Agent:
-    def __init__(self, query: str, depth: int):
+    def __init__(self, query: str, depth: int, order: int = 1):
         self.query = query
         self.depth = depth
+        self.order = order
     
     #Used for matching comments to agents in inference_tree.py function process_thread
     def get_depth(self): return self.depth
