@@ -31,11 +31,45 @@ class InferenceTree:
     def process_thread(self, data, data_type: str, output_location: str = None):
 
         #If input_location is not equal to "", pull data from json files
-        conversation_tree = _Tree(data)
+        conversation_tree = _Tree(data).tree
         
+        #Starting at the deepest horizontal depth in the tree iterate through each depth up to root
+        output_list = []
+        for d in range(conversation_tree.depth(), -1, -1):
+            #get a list of all nodes at current depth
+            d_nodes = [node for node in conversation_tree.all_nodes() if conversation_tree.depth(node.identifier) == d]
+
+            for d_node in d_nodes:
+                #if the node has any children
+                if len(conversation_tree.children(d_node.identifier)) > 0:
+                    #summarize all child nodes of current node
+                    current_nodes_child_ids = [child.identifier for child in conversation_tree.children(d_node.identifier)]
+                    #NOTE: UNFINISHED
+                    #Pseudocode block start
+                    #Pull the "content" dict entries from output_list that have dict id entries that match one string entry from current_nodes_child_ids
+                    #Do summarizer, store in string variable children_summary
+                    #Pseudocode block end
+
+                    #with context output of summarizer, apply current depth agents
+                    current_depth_agents = []
+                    d_agent_counter = d
+                    while len(current_depth_agents) == 0:
+                        current_depth_agents = [a for a in self.agent_list if a.depth == d_agent_counter]
+                        d_agent_counter -= 1
+                    
+                    for current_depth_agent in current_depth_agents:
+                        output_list.append(
+                            {
+                                "id": d_node.identifier,
+                                "content": self.llm.generate(current_depth_agent.form_prompt(children_summary))
+                            }
+                        )
+                    
+
         print("Tree initialization complete")
         exit()
         if output_location is not None:
             text_file = open(output_location, "w")
             text_file.write(inference_summary)
             text_file.close()
+    

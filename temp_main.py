@@ -16,6 +16,10 @@ for name in file_names:
 model = "meta-llama/Llama-3.2-3B-Instruct"
 q_list = [
     {
+        "question": "Summarize the text in 150 words or less.",
+        "depth": -1
+    },
+    {
         "question": "This is a test question",
         "depth": 0,
         "order": 1
