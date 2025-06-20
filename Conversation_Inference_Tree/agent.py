@@ -9,7 +9,8 @@ class _Agent:
 
     def form_prompt(self, input: str):
         #create the prompt by bringing toghether the question the agent will ask(query), 
-        #and the textual input the query is focused on.        
+        #and the textual input the query is focused on.
+        # NOTE: Figure out a way to differentiate a question and a role in structure  
         message = [
             {"role": "system", "content": self.query},
             {"role": "user", "content": input},
