@@ -84,7 +84,7 @@ class InferenceTree:
             else:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 
-                summary = ""
+                summary = ""  #NOTE: Change this into a summary function for ease of reading?
                 #if there is anything in current_holding, 
                 if len(current_holding) > 0:
                     #Split the stored outputs into batches to be given to the summarizer
@@ -92,7 +92,7 @@ class InferenceTree:
                     summarizer_agent = next((u for u in self.agent_list if u.depth == -1))
                     
                     #Summarize current_holding
-                    for batch in batch_holding:
+                    for batch in batch_holding: #NOTE: add options for summarization that aren't exclusively ordered batches
                         summary = summary + self.llm.generate(summarizer_agent.form_prompt("\n\n".join(batch))) + "\n\n"
                     
                     #Clear the now-used entry in temp-holding
@@ -102,6 +102,7 @@ class InferenceTree:
                 current_agents = [u for u in self.agent_list if u.depth == conversation_tree.get_node(output_stack[-1]).data.depth]
                 current_agent_output = ""
                 for a in current_agents:
+                    #NOTE: Make the following customizable to the user, so they can define how the different components will be created.
                     current_agent_output = (current_agent_output #If there are multiple agent questions to be asked, they will concatenate
                                             + "The output for the question: '"+ a.query + "' is:\n" 
                                             + self.llm.generate( #Get a response from the llm for the following
