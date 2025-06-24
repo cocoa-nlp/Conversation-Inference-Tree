@@ -1,6 +1,6 @@
 import praw
 import os
-from collections import deque
+from collections import deque, defaultdict
 
 from .tree import _Tree
 from .agent import _Agent
@@ -55,28 +55,19 @@ class InferenceTree:
                                     )
         logger.info("inference object initialized")
 
-    #process reddit thread NOTE: input_location and output_location not implemented yet
-    def process_thread(self, data, data_type: str, output_location: str = None):
-
-        #If input_location is not equal to "", pull data from json files
-        conversation_tree = _Tree(data).tree
-        logger.info("tree populated")
-        
-        #Pseudocode start
-        
+    def _do_summary_and_agent(self, tree):
         output_stack = deque()
-        temp_holding = dict()
+        temp_holding = defaultdict(list)
 
         #Add top comment(post) to stack
-        output_stack.append(conversation_tree.root)
+        output_stack.append(tree.root)
 
         #Loop continues till the stack is completely emptied
         while output_stack:
             #current_holding contains the agent outputs of the children of the top-of-stack node
             #current_children contains the children of the top-of-stack node in a list
             current_holding = temp_holding.get(output_stack[-1], [])
-            conversation_tree.show()
-            current_children = conversation_tree.children(output_stack[-1])
+            current_children = tree.children(output_stack[-1])
 
             #If the more child nodes than there are summaries of child nodes, add the next child to the stack
             if len(current_children) > len(current_holding):
@@ -93,32 +84,38 @@ class InferenceTree:
                     
                     #Summarize current_holding
                     for batch in batch_holding:
-                        summary = summary + self.llm.generate(summarizer_agent.form_prompt("\n\n".join(batch))) + "\n\n"
+                        summary = f"{summary}{self.llm.generate(summarizer_agent.form_prompt("\n\n".join(batch)))}\n\n"
                     
                     #Clear the now-used entry in temp-holding
                     del temp_holding[output_stack[-1]]
                 
+                #if the current top-of-stack is root, return the result
+                if output_stack[-1] == tree.root: return summary #NOTE: perhaps make this summary be separate so the user can define user readable formatting?
+
                 #With context from summary, apply depth-appropriate agent(s) to top-of-stack node
-                current_agents = [u for u in self.agent_list if u.depth == conversation_tree.get_node(output_stack[-1]).data.depth]
+                current_agents = [u for u in self.agent_list if u.depth == tree.get_node(output_stack[-1]).data.depth]
                 current_agent_output = ""
                 for a in current_agents:
-                    current_agent_output = (current_agent_output #If there are multiple agent questions to be asked, they will concatenate
-                                            + "The output for the question: '"+ a.query + "' is:\n" 
-                                            + self.llm.generate( #Get a response from the llm for the following
-                                                a.form_prompt(#Format a prompt from the following input text
-                                                    conversation_tree.get_node(output_stack[-1]).data.body)
-                                                    + "\nHere is a summary of the response to this comment:\n" #Add summary for context
-                                                    + summary)#NOTE:^ I should move this to an earlier if statment so that if there is no comment due to 0 replies to current node, there aren't unnessessary tokens added to prompt
-                                            + "\n\n") #Add a little space between agent responses in output string
+                    current_agent_output = (f"{current_agent_output}The output for the question \"{a.query}\" is:\n{self.llm.generate(a.form_prompt(tree.get_node(output_stack[-1]).data.body))}\nHere is a summary of the response to this comment:\n{summary}\n\n")
                 
                 #Remove completed node from top of the stack
                 output_stack.pop()
                 
                 #append output from agents to the temp_holding level keyed to the new top-of-stack
                 temp_holding[output_stack[-1]].append(current_agent_output)
+        #If the while loop completes, then the return statement never triggered
+        raise Exception("Return statement never triggered, likely a problem with tree initialization!")
+    #process reddit thread NOTE: input_location and output_location not implemented yet
+    def process_thread(self, data, data_type: str, output_location: str = None):
+
+        #If input_location is not equal to "", pull data from json files
+        conversation_tree = _Tree(data).tree
+        logger.info("tree populated")
         
+        inference_summary = self._do_summary_and_agent(conversation_tree)
+
         logger.info("All conversations processed")
-        exit()
+        
         if output_location is not None:
             text_file = open(output_location, "w")
             text_file.write(inference_summary)

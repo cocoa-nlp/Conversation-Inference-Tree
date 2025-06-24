@@ -14,7 +14,6 @@ class _ModelWrapper:
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" 
         
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
-        #NOTE: Check out python logging package
         if model_origin == "hf":
             #This code runs if the llm is from huggingface.co or a local huggingface model
             key = os.getenv('token')
