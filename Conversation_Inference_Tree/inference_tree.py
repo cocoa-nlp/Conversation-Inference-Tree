@@ -75,7 +75,7 @@ class InferenceTree:
             else:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 
-                summary = ""
+                summary = ""  #NOTE: Change this into a summary function for ease of reading?
                 #if there is anything in current_holding, 
                 if len(current_holding) > 0:
                     #Split the stored outputs into batches to be given to the summarizer
@@ -96,8 +96,9 @@ class InferenceTree:
                 current_agents = [u for u in self.agent_list if u.depth == tree.get_node(output_stack[-1]).data.depth]
                 current_agent_output = ""
                 for a in current_agents:
-                    current_agent_output = (f"{current_agent_output}The output for the question \"{a.query}\" is:\n{self.llm.generate(a.form_prompt(tree.get_node(output_stack[-1]).data.body))}\nHere is a summary of the response to this comment:\n{summary}\n\n")
-                
+                  #NOTE: Make the following customizable to the user, so they can define how the different components will be created.
+                  current_agent_output = (f"{current_agent_output}The output for the question \"{a.query}\" is:\n{self.llm.generate(a.form_prompt(tree.get_node(output_stack[-1]).data.body))}\nHere is a summary of the response to this comment:\n{summary}\n\n")
+                  
                 #Remove completed node from top of the stack
                 output_stack.pop()
                 
