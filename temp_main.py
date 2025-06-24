@@ -34,6 +34,10 @@ inference_object = InferenceTree(model, "test", q_list) #NOTE: real options are 
 for thread in threads:
     summary = inference_object.process_thread(thread, data_type="json")
 
+    #Temporary print for testing purposes
+    print(summary)
+    exit()
+
     text_file = open("summaries/" + thread["id"] + ".txt", "w")
     text_file.write(summary)
     text_file.close()
