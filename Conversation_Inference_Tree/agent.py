@@ -1,4 +1,23 @@
 class _Agent:
+    """
+    This object stores the data needed to reference a question that needs to be applied to 
+    a given depth's textual input, as well as provides a function for formatting a prompt.
+
+    Methods:
+        form_prompt: takes any comment's body text and formats it into a llm-ready prompt,
+                     while also applying the query to be answered by the llm.  Should be called
+                     within the parentesis the llm's generate() function.
+        get_depth: currently unused function to retrieve agent depth.
+    
+    Args:
+        query: the question that the agent will ask.
+        order: possible future functionality that will allow the user to specify same-depth
+               ordering of questions, allowing a query to have the context of an earlier 
+               query's output.
+        depth: defines at what depth a given agent should be applied.  A depth of -1 signifies
+               the summarizer to be used on child node outputs.  A 0 signifies top level comments,
+               1s are replies to the comments, 2 are replies to replies, etc...
+    """
     def __init__(self, query: str, depth: int, order: int = 1):
         self.query = query
         self.order = order

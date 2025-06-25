@@ -4,6 +4,18 @@ from .reddit_wrapper import _RedditWrapper
 from .logger import logger
 
 class _Tree:
+    """
+    This class is used for turning reddit conversation data into a usable treelib object.
+
+    Methods:
+        _recursive_node: A private function to be called by __init__.  Recursively adds an 
+                         an entered node's child nodes to the tree.  Utilizes leftmost traversal.
+    Args:
+        raw_submission: Takes the post and replies to be analyzed.  Currently only takes 
+                        json data made by a praw object.  In the future, this will also
+                        take praw objects and psaw objects directly.
+    """
+
     def __init__(self, raw_submission):
         self.tree = Tree()
         #NOTE: try changing to dictionary for fast look-up

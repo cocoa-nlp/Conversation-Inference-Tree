@@ -13,7 +13,10 @@ class InferenceTree:
 
     Methods:
         process_thread: takes the pre-loaded questions and llm and applies them to
-        a reddit thread in var data
+                        a reddit thread in var data
+        _do_summary_and_agent: a private function that holds the processing logic of applying the
+                               various agents, for the purposes of adding abstraction for greater
+                               readability.  Takes the tree object containing all conversation data.
     Args:
         model_name: a string that the selected model handler uses to reference a specific llm
                     for example, a huggingface model could be "meta-llama/Llama-3.2-3B-Instruct"

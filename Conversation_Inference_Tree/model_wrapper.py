@@ -6,6 +6,25 @@ import openai
 from .logger import logger
 
 class _ModelWrapper:
+    """
+    This is a class used to contain and abstract the usage of a given llm for inference_tree.
+    With this class, a user can pass agent prompts to either a local huggingface model OR the
+    OpenAI API, without any additional tweaks outside of initialization.
+
+    Methods:
+        generate: takes the arguement "input", and passes it to the model for processing before
+                  returning the model output.  Make sure to use the agent class's form_prompt()
+                  function on an input to get it in the right format before passing.
+    
+    Args:
+        model_name: The reference name for the model.  Example: "meta-llama/Llama-3.2-3B-Instruct" for
+                    huggingface, or "gpt-4o" for an OpenAI API call.
+        model_origin: Defines whether the model in question comes from huggingface(pass in "hf") or 
+                      OpenAI(pass in "openai").
+        model_params: Takes a dictionary of hyperparameters and directly applies them to the model.
+                      Design this dictionary the same way as if you were calling the given llm directly.
+    """
+
     def __init__(self, model_name: str, model_origin: str, model_params: dict = None):
         self.model_origin = model_origin     
 
