@@ -69,7 +69,7 @@ class InferenceTree:
         while output_stack:
             #current_holding contains the agent outputs of the children of the top-of-stack node
             #current_children contains the children of the top-of-stack node in a list
-            current_holding = temp_holding.get(output_stack[-1], [])
+            current_holding = temp_holding.get(output_stack[-1], []) #NOTE: Change to current_children_outputs
             current_children = tree.children(output_stack[-1])
 
             #If the more child nodes than there are summaries of child nodes, add the next child to the stack
@@ -80,13 +80,14 @@ class InferenceTree:
                 
                 summary = ""  #NOTE: Change this into a summary function for ease of reading?
                 #if there is anything in current_holding, 
-                if len(current_holding) > 0:
+                if len(current_holding) > 0: #NOTE: Turn this into a method for readability?
                     #Split the stored outputs into batches to be given to the summarizer
                     batch_holding = [current_holding[i:i + self.children_per_summary] for i in range(0, len(current_holding), self.children_per_summary)]
-                    summarizer_agent = next((u for u in self.agent_list if u.depth == -1))
+                    summarizer_agent = next((u for u in self.agent_list if u.depth == -1)) #NOTE: Make summarizers into its own argument to pass into __init__?
                     
                     #Summarize current_holding
                     for batch in batch_holding:
+                        #NOTE: adjust to a method type or multiple line?
                         summary = f"{summary}{self.llm.generate(summarizer_agent.form_prompt("\n\n".join(batch)))}\n\n"
                     
                     #Clear the now-used entry in temp-holding
@@ -115,8 +116,9 @@ class InferenceTree:
         #If input_location is not equal to "", pull data from json files
         conversation_tree = _Tree(data).tree
         logger.info("tree populated")
-        
+
         inference_summary = self._do_summary_and_agent(conversation_tree)
+
 
         logger.info("All conversations processed")
         
