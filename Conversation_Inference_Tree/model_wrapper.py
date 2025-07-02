@@ -1,9 +1,11 @@
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, pipeline
 import os
 from dotenv import load_dotenv
+from huggingface_hub import login
 import openai
 
 from .logger import logger
+from .agent import _Agent
 
 class _ModelWrapper:
     """
@@ -35,8 +37,12 @@ class _ModelWrapper:
         #sets the llm that will be used by the other functions, and exposes it as an accessible variable
         if model_origin == "hf":
             #This code runs if the llm is from huggingface.co or a local huggingface model
-            key = os.getenv('token')
-            # user = os.getenv('username')
+            try:
+                key = os.getenv('token')
+                # user = os.getenv('username')
+                login(key)
+            except:
+                raise KeyError("Login with token failed!  Make sure to set your huggingface login key under 'token' in your .env!")
 
             #save the user-defined model hyperparameters to an AutoConfig object, then initialize the model into a global variable
             config = AutoConfig.from_pretrained(model_name, **model_params)
@@ -54,16 +60,20 @@ class _ModelWrapper:
             logger.error("model origin selected incorrectly, failed to load model")
             #raise TypeError(f"model_origin of '{model_origin}' incorrect, must be 'hf', 'openai'")
     
-    def generate(self, input):
+    def generate(self, input: str, agent: _Agent):
+        formatted_input = agent.form_prompt(input)
+
         if self.model_origin == "hf":
-            response = self.model(input)
+            response = self.model(formatted_input)
+            logger.debug(f"openai call for prompt\n{formatted_input}\ngave output\n{response}")
             return response
         elif self.model_origin == "openai":
                 response = openai.ChatCompletion.create(
                     model=self.model["model"],
-                    message=input,
+                    message=formatted_input,
                     config=self.model["config"]
                 )
+                logger.debug(f"openai call for prompt\n{formatted_input}\ngave output\n{response['choices'][0]['message']['content']}")
                 return response['choices'][0]['message']['content']
         else:
             logger.error("model failed generation step")

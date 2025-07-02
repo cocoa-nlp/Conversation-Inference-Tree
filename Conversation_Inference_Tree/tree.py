@@ -40,13 +40,27 @@ class _Tree:
         self.tree.create_node("root-node", submission.id, data=submission)
         self._recursive_node(submission, submission.id)
         logger.debug("recursion to add wrapper objects to tree complete")
+
+    def _get_children(self, parent_id):
+        """Takes a comment's id, and retrieves all the comment objects who have that id as their parent_id attribute as a list"""
+        #NOTE: Considering changing to a parent lookup dictionary for wrapped_comments to avoid exponential compute costs
+        children_comments = [c for c in self.wrapped_comments if c.parent_id == parent_id]
+        return children_comments
     
     #sets the subcomments of entry as child nodes, and repeats the chain
     #does not handle setting the entry node itself, as that would make setting the root complicated
     def _recursive_node(self, entry, parent_id):
+        """
+        This function takes a comment object, then recursively adds all of that comment's children
+        to the treelib object as child nodes.
+
+        Args:
+        entry -- the comment object
+        parent_id -- the id of the comment object
+        """
         logger.debug(f"doing recursion for: {parent_id}")
-        #NOTE: Considering changing to a parent lookup dictionary for wrapped_comments to avoid exponential compute costs
-        for child in [i for i in self.wrapped_comments if i.parent_id == parent_id]:
+        children = self._get_children(parent_id)
+        for child in children:
             self.tree.create_node(child.id, child.id, parent=entry.id, data=entry)
             
             self._recursive_node(child, child.id)
