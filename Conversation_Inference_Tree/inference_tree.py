@@ -6,15 +6,16 @@ from .tree import _Tree
 from .agent import _Agent
 from .model_wrapper import _ModelWrapper
 from .logger import logger
+from .CLIGraph import CLIGraph
 
 class OutputFormatter:
-    def __init__(self, template: str, **defaults: dict):
+    def __init__(self, template: str, user_vars: dict):
         self.template = template
-        self.defaults = defaults
+        self.user_vars = user_vars
     
-    def format(self, **vars: dict):
+    def format(self, vars: dict):
         try:
-            return self.template.format(**self.defaults, **vars)
+            return self.template.format(**self.user_vars, **vars)
         except KeyError as e: #TODO: add logging functionality.
             raise ValueError(f"Missing placeholder in template: {e}")
 
@@ -72,7 +73,7 @@ class InferenceTree:
         model_params: dict = {}, 
         agent_format: OutputFormatter = OutputFormatter(
             template = "{prev_output}{question_prefix}{question}{question_suffix}{gen}{sep}",
-            defaults = {
+            user_vars = {
                 "question_prefix": "The output for the question \"",
                 "question_suffix": "\" is:\n",
                 "sep": "\n\n"
@@ -80,13 +81,13 @@ class InferenceTree:
         ),
         agent_input_format: OutputFormatter = OutputFormatter(
             template = "{text_body}{summary_prefix}{summary}",
-            defaults = {
+            user_vars = {
                 "summary_prefix": "\nHere is a summary of the response to this comment:\n"
             }
         ),
         summary_format: OutputFormatter = OutputFormatter(
             template = "{prev_output}{gen}{sep}",
-            defaults = {"sep": "\n\n"}
+            user_vars = {"sep": "\n\n"}
         ), 
         children_per_summary: int = 5
     ):
@@ -100,7 +101,7 @@ class InferenceTree:
         
         #Sets the agents according to user specifications in question_list
         for question in question_list:
-            logger.debug(f"setting agent for question: '{question["question"]}'")
+            logger.debug(f"setting agent for question: '{question['question']}'")
 
             question_order = question.get('order', 1)
 
@@ -147,11 +148,11 @@ class InferenceTree:
         top_stack_node = tree_object.get_node(top_stack_id)
         output = ""
         for a in current_agents:
-            text = self.agent_input_format.format(vars={
+            text = self.agent_input_format.format({
                 "text_body": top_stack_node.data.body,
                 "summary": summary
             })
-            output = self.agent_format.format(vars={
+            output = self.agent_format.format({
                 "prev_output": output,
                 "question": a.query,
                 "gen": self.llm.generate(text, a),
@@ -182,7 +183,7 @@ class InferenceTree:
             output = ""
             for batch in batch_holding:
                 batch_text = "\n\n".join(batch)
-                output = self.summary_format.format(vars={
+                output = self.summary_format.format({
                     "prev_output": output,
                     "gen": self.llm.generate(batch_text, summarizer_agent)
                 })
@@ -201,6 +202,7 @@ class InferenceTree:
         #Loop continues till the stack is completely emptied
         #NOTE: check if there is a better way to do this?  
         #   It doesn't sit right to have a while loop where termination is a failure condition
+        g = CLIGraph(-3, 7, desc='Processing at depth')
         while output_stack:
             #current_holding contains the agent outputs of the children of the top-of-stack node
             #current_children contains the children of the top-of-stack node in a list
@@ -232,6 +234,8 @@ class InferenceTree:
                 
                 #append output from agents to the temp_holding level keyed to the new top-of-stack
                 temp_holding[output_stack[-1]].append(current_agent_output)
+
+                g.update(tree.get_node(output_stack[-1]).data.depth)
         #If the while loop completes, then the return statement never triggered
         raise Exception("Return statement never triggered, likely a problem with tree initialization!")
 

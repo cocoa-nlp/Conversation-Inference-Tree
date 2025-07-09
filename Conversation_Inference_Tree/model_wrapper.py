@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from huggingface_hub import login
 import openai
+import pynvml
 
 from .logger import logger
 from .agent import _Agent
@@ -31,6 +32,7 @@ class _ModelWrapper:
         self.model_origin = model_origin     
 
         load_dotenv()
+        os.environ["CUDA_VISIBLE_DEVICES"] = self.get_gpu_with_most_free_memory()
         os.environ["TORCH_USE_CUDA_DSA"] = "1"
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" 
         
@@ -48,7 +50,7 @@ class _ModelWrapper:
             config = AutoConfig.from_pretrained(model_name, **model_params)
             automodel = AutoModelForCausalLM.from_pretrained(model_name, config=config)
             autotokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = pipeline("text-generation", model=automodel, tokenizer=autotokenizer)
+            self.model = pipeline("text-generation", model=automodel, tokenizer=autotokenizer, pad_token_id = autotokenizer.eos_token_id)
         elif model_origin == "openai":
             #This code runs if the llm is accessed throught the openai api
             key = os.getenv('OPENAI_API_KEY')
@@ -59,13 +61,41 @@ class _ModelWrapper:
         else: 
             logger.error("model origin selected incorrectly, failed to load model")
             #raise TypeError(f"model_origin of '{model_origin}' incorrect, must be 'hf', 'openai'")
-    
+
+    def get_gpu_with_most_free_memory(self):
+        pynvml.nvmlInit()
+        device_count = pynvml.nvmlDeviceGetCount()
+        free_memories = []
+
+        for i in range(device_count):
+            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+            mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            free_memories.append((i, mem_info.free))
+
+        pynvml.nvmlShutdown()
+
+        # Sort by most free memory (descending)
+        best_gpu = sorted(free_memories, key=lambda x: x[1], reverse=True)[0][0]
+        return str(best_gpu)
+
+
     def generate(self, input: str, agent: _Agent):
+        """
+        This function handles passing prompts to a given model, and abstracts away the complexities of tokenization
+        and the like.  It is very important that any customization of the output formatting is done within this function.
+
+        Args:
+        input -- contains the input text to be formatted by the agent
+        agent -- passes in the agent so it can apply a question to the input text to make a full prompt.
+
+        Returns:
+        response -- Ultimately a single string, execution will vary by model_origin parameter.
+        """
         formatted_input = agent.form_prompt(input)
 
         if self.model_origin == "hf":
-            response = self.model(formatted_input)
-            logger.debug(f"openai call for prompt\n{formatted_input}\ngave output\n{response}")
+            response = self.model(formatted_input, return_full_text=False)[0]["generated_text"]
+            logger.debug(f"huggingface call for prompt\n{formatted_input}\ngave output\n{response}") #NOTE: Keep in single line?
             return response
         elif self.model_origin == "openai":
                 response = openai.ChatCompletion.create(
