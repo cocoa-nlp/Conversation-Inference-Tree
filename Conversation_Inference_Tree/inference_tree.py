@@ -37,6 +37,8 @@ class InferenceTree:
     model_origin -- selects a model handler.  If "hf" is passed in, then model_name model is a 
                     huggingface model.  If "openai" is passed in, then the questions are treated
                     as calls to the OpenAI API.
+    summarizer_list -- a list of dictionaries containing one or more summary questions to be applied to 
+                  child outputs.  Same args as question_list below
     question_list -- a list of dictionaries containing the agent data.
         {
             "question" OR "role": put the question you want the agent to ask here as a string,
@@ -44,11 +46,12 @@ class InferenceTree:
                                   string, while choosing role causes the agent to format the prompt as
                                   "user", "system", and so forth in a dictionary prompt.
             "depth": tells the agent where it needs to be applied.  0 are top level comments, 1 are replies
-                     to those comments, 2 are replies to replies, and so forth.  -99 defines the summarizer.
+                     to those comments, 2 are replies to replies, and so forth.
             "order": NOT IMPLEMENTED YET
         }
     model_params -- Use this dict variable to pass hyperparameters into the model, 
                     just as you normally would.
+    prompt_type -- default is "role".  Defines how the _Agent object formats the input to the llm.  Options are "question" and "role"
     children_per_summary -- Defines how many child node outputs are concatenated together for each summary.
     graph -- default True: a boolean value that determines whether a graph displaying a live view of the current processing node depth is displayed.
     """ 
@@ -56,11 +59,13 @@ class InferenceTree:
         self, 
         model_name: str, 
         model_origin: str, 
-        question_list: list[dict] = [
+        summarizer_list: list[dict] = [
             {
                 "question": "Summarize the text in 150 words or less.",
-                "depth": -99
+                "depth": -99 #NOTE: is -99 to avoid keyerrors when wrapping into agent
             },
+        ],
+        question_list: list[dict] = [
             {
                 "question": "Tell me what the subject of this conversation is, and the sentiment expressed about the subject.",
                 "depth": 0,
@@ -89,6 +94,7 @@ class InferenceTree:
             template = "{prev_output}{gen}{sep}",
             user_vars = {"sep": "\n\n"}
         ), 
+        prompt_type: str = "role",
         children_per_summary: int = 5,
         graph: bool = True
     ):
@@ -101,6 +107,15 @@ class InferenceTree:
 
         self.llm = _ModelWrapper(model_name=model_name, model_origin=model_origin, model_params=model_params)
         
+        #Convert summarizer_list into wrapped agents
+        self.summarizer_list = []
+        for summarizer in summarizer_list:
+            self.summarizer_list.append(_Agent(
+                                            query=summarizer.get("question"),
+                                            depth=summarizer["depth"], 
+                                            prompt_type=prompt_type
+                                        ))
+
         #Sets the agents according to user specifications in question_list
         for question in question_list:
             logger.debug(f"setting agent for question: '{question['question']}'")
@@ -109,9 +124,10 @@ class InferenceTree:
             if question["depth"] < 0 and question["depth"] != -99:
                 raise ValueError(f"The question {question} was set to an incorrect value")
             self.agent_list.append(_Agent(
-                                        query=question.get("question", "role"),#NOTE: Need to figure out role vs question handling 
+                                        query=question.get("question"), 
                                         depth=question["depth"], 
-                                        order=question_order
+                                        order=question_order,
+                                        prompt_type=prompt_type
                                         )
                                     )
         logger.info("inference object initialized")
@@ -120,11 +136,6 @@ class InferenceTree:
         """Takes a list, and splits into a list of sublists of the origional list each with a size of batch_size"""
         batches = [target[i:i + batch_size] for i in range(0, len(target), batch_size)]
         return batches
-
-    def _get_summarizer(self):
-        """returns the agent with summarizer depth(-99) from agent_list for fast retrieval"""
-        #NOTE: Make summarizers into its own argument to pass into __init__?
-        return next((u for u in self.agent_list if u.depth == -99)) 
     
     def _get_agents(self, tree_object, top_stack_id):
         """returns the agents for the depth of the current top-of-stack node in a list"""
@@ -134,7 +145,7 @@ class InferenceTree:
         current_depth_agents = [a for a in self.agent_list if a.depth == top_stack_node.data.depth]
         return current_depth_agents
     
-    def _do_agent_processing(self, current_agents, tree_object, top_stack_id, summary):
+    def _do_agent_processing(self, current_agents, tree_object, top_stack_id, prev_summary):
         """
         This function gets the generated llm output from the current-depth agents together
         with the current node's text body.
@@ -143,6 +154,7 @@ class InferenceTree:
         current_agents -- the list of agents that apply at the current node's depth
         tree-object -- the tree holding all nodes
         top_stack_id -- the id of the current top-of-stack node
+        prev_summary -- a string containing the summarized output from children of the current top-of-stack
 
         Returns:
         output -- A string containing all agent outputs, formatted and concatenated together with an fstring
@@ -153,17 +165,13 @@ class InferenceTree:
         for a in current_agents:
             text = self.agent_input_format.format({
                 "text_body": top_stack_node.data.body,
-                "summary": summary
+                "summary": prev_summary
             })
             output = self.agent_format.format({
                 "prev_output": output,
                 "question": a.query,
                 "gen": self.llm.generate(text, a),
             })
-        
-        #NOTE: gotta make sure summary is added to generate input rather than added to output.
-        #(f"{output}The output for the question \"{a.query}\" is:\n{self.llm.generate(a.form_prompt(top_stack_node.data.body))}\nHere is a summary of the response to this comment:\n{summary}\n\n")
-        #"{prev_output}{question_prefix}{question}{question_suffix}{gen}{summary_prefix}{summary}{sep}"
         return output
 
     def _do_summary_processing(self, current_holding: list):
@@ -177,10 +185,10 @@ class InferenceTree:
         output -- A single string containing the summary
         """
         #if there is anything in current_holding, 
-        if len(current_holding) > 0: #NOTE: Turn this into a method for readability?
+        if len(current_holding) > 0:
             #Split the stored outputs into batches to be given to the summarizer
             batch_holding = self._split_into_batches(current_holding, self.children_per_summary)
-            summarizer_agent = self._get_summarizer()
+            summarizer_agent = self.summarizer_list[0]#NOTE: keep 0 until multiple summarizer functionality added
             
             #Summarize current_holding
             output = ""
@@ -203,7 +211,6 @@ class InferenceTree:
         output_stack.append(tree.root)
 
         #Loop continues till the stack is completely emptied
-        #NOTE: check if there is a better way to do this?  
         #   It doesn't sit right to have a while loop where termination is a failure condition
         g = CLIGraph(-1, 7, desc='Processing at depth')
         while output_stack:
@@ -218,7 +225,6 @@ class InferenceTree:
             else:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 if self.graph: g.update(tree.get_node(output_stack[-1]).data.depth)
-                print(f"Depth: {tree.get_node(output_stack[-1]).data.depth}")
                 summary = self._do_summary_processing(current_holding)
                 #Clear the now-used entry in temp-holding
                 try:
@@ -228,8 +234,7 @@ class InferenceTree:
 
                 #if the current top-of-stack is root, return the result
                 if output_stack[-1] == tree.root: 
-                    print()
-                    return summary #NOTE: perhaps make this summary be separate so the user can define user readable formatting?
+                    return summary
 
                 #With context from summary, apply depth-appropriate agent(s) to top-of-stack node
                 current_agents = self._get_agents(tree, output_stack[-1])
