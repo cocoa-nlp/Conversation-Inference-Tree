@@ -1,6 +1,6 @@
 import sys
 import time
-
+ 
 class CLIGraph:
     def __init__(self, min_value, max_value, step_value=1, desc='', width=60):
         self.min_value = min_value

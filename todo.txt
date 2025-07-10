@@ -1,0 +1,26 @@
+TODO list:
+
+inference_tree.py:
+- DONE: Move the summarization and agent logic to their own functions.
+- DONE: Decide whether to do or get rid of input/output_location args.
+- LOW: implement ordering in same-depth agent logic
+- MEDIUM: refactor class docstring to be best practice with __init__
+- HIGH: Implement role vs question
+- MEDIUM: Implement a way for the user to define the string that combines the child output summary and the agent input
+
+tree.py
+- DONE: create """ description
+- MEDIUM: refactor class docstring to be best practice with __init__
+- LOW: clean up final for loop
+- LOW: change list comprehension to parent lookup dictionary logic
+- LOW: decide whether the commented code in line 12 should stay or not
+
+model_wrapper.py
+- MEDIUM: add additional logging functionality
+- MEDIUM: refactor class docstring to be best practice with __init__
+- DONE: create """ description
+
+agent.py
+- HIGH: Implement role vs question
+- MEDIUM: refactor class docstring to be best practice with __init__
+- DONE: create """ description

@@ -33,7 +33,8 @@ class _ModelWrapper:
         self.model_origin = model_origin     
 
         load_dotenv()
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.get_gpu_with_most_free_memory()
+        best_gpu = self.get_gpu_with_most_free_memory()
+        if best_gpu is not None: os.environ["CUDA_VISIBLE_DEVICES"] = best_gpu
         os.environ["TORCH_USE_CUDA_DSA"] = "1"
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" 
         
@@ -64,20 +65,24 @@ class _ModelWrapper:
             #raise TypeError(f"model_origin of '{model_origin}' incorrect, must be 'hf', 'openai'")
 
     def get_gpu_with_most_free_memory(self):
-        pynvml.nvmlInit()
-        device_count = pynvml.nvmlDeviceGetCount()
-        free_memories = []
+        try:
+            pynvml.nvmlInit()
+            device_count = pynvml.nvmlDeviceGetCount()
+            free_memories = []
 
-        for i in range(device_count):
-            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-            mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-            free_memories.append((i, mem_info.free))
+            for i in range(device_count):
+                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+                mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                free_memories.append((i, mem_info.free))
 
-        pynvml.nvmlShutdown()
+            pynvml.nvmlShutdown()
 
-        # Sort by most free memory (descending)
-        best_gpu = sorted(free_memories, key=lambda x: x[1], reverse=True)[0][0]
-        return str(best_gpu)
+            # Sort by most free memory (descending)
+            best_gpu = sorted(free_memories, key=lambda x: x[1], reverse=True)[0][0]
+            return str(best_gpu)
+        except:
+            logger.info("No CUDA device found, skipping device finding function.")
+            return None
 
 
     def generate(self, input: str, agent: _Agent):

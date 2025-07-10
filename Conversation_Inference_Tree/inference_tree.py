@@ -44,14 +44,14 @@ class InferenceTree:
                                   string, while choosing role causes the agent to format the prompt as
                                   "user", "system", and so forth in a dictionary prompt.
             "depth": tells the agent where it needs to be applied.  0 are top level comments, 1 are replies
-                     to those comments, 2 are replies to replies, and so forth.  -1 defines the summarizer.
+                     to those comments, 2 are replies to replies, and so forth.  -99 defines the summarizer.
             "order": NOT IMPLEMENTED YET
         }
     model_params -- Use this dict variable to pass hyperparameters into the model, 
                     just as you normally would.
     children_per_summary -- Defines how many child node outputs are concatenated together for each summary.
     graph -- default True: a boolean value that determines whether a graph displaying a live view of the current processing node depth is displayed.
-    """
+    """ 
     def __init__(
         self, 
         model_name: str, 
@@ -59,7 +59,7 @@ class InferenceTree:
         question_list: list[dict] = [
             {
                 "question": "Summarize the text in 150 words or less.",
-                "depth": -1
+                "depth": -99
             },
             {
                 "question": "Tell me what the subject of this conversation is, and the sentiment expressed about the subject.",
@@ -106,7 +106,8 @@ class InferenceTree:
             logger.debug(f"setting agent for question: '{question['question']}'")
 
             question_order = question.get('order', 1)
-
+            if question["depth"] < 0 and question["depth"] != -99:
+                raise ValueError(f"The question {question} was set to an incorrect value")
             self.agent_list.append(_Agent(
                                         query=question.get("question", "role"),#NOTE: Need to figure out role vs question handling 
                                         depth=question["depth"], 
@@ -121,9 +122,9 @@ class InferenceTree:
         return batches
 
     def _get_summarizer(self):
-        """returns the agent with summarizer depth(-1) from agent_list for fast retrieval"""
+        """returns the agent with summarizer depth(-99) from agent_list for fast retrieval"""
         #NOTE: Make summarizers into its own argument to pass into __init__?
-        return next((u for u in self.agent_list if u.depth == -1)) 
+        return next((u for u in self.agent_list if u.depth == -99)) 
     
     def _get_agents(self, tree_object, top_stack_id):
         """returns the agents for the depth of the current top-of-stack node in a list"""
