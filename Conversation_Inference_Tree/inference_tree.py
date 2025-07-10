@@ -50,7 +50,7 @@ class InferenceTree:
     model_params -- Use this dict variable to pass hyperparameters into the model, 
                     just as you normally would.
     children_per_summary -- Defines how many child node outputs are concatenated together for each summary.
-
+    graph -- default True: a boolean value that determines whether a graph displaying a live view of the current processing node depth is displayed.
     """
     def __init__(
         self, 
@@ -89,13 +89,15 @@ class InferenceTree:
             template = "{prev_output}{gen}{sep}",
             user_vars = {"sep": "\n\n"}
         ), 
-        children_per_summary: int = 5
+        children_per_summary: int = 5,
+        graph: bool = True
     ):
         self.agent_list = []
         self.children_per_summary = children_per_summary 
         self.agent_format = agent_format
         self.agent_input_format = agent_input_format
         self.summary_format = summary_format
+        self.graph = graph
 
         self.llm = _ModelWrapper(model_name=model_name, model_origin=model_origin, model_params=model_params)
         
@@ -202,7 +204,7 @@ class InferenceTree:
         #Loop continues till the stack is completely emptied
         #NOTE: check if there is a better way to do this?  
         #   It doesn't sit right to have a while loop where termination is a failure condition
-        g = CLIGraph(-3, 7, desc='Processing at depth')
+        g = CLIGraph(-1, 7, desc='Processing at depth')
         while output_stack:
             #current_holding contains the agent outputs of the children of the top-of-stack node
             #current_children contains the children of the top-of-stack node in a list
@@ -214,7 +216,8 @@ class InferenceTree:
                 output_stack.append(current_children[len(current_holding)].identifier)
             else:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
-                
+                if self.graph: g.update(tree.get_node(output_stack[-1]).data.depth)
+                print(f"Depth: {tree.get_node(output_stack[-1]).data.depth}")
                 summary = self._do_summary_processing(current_holding)
                 #Clear the now-used entry in temp-holding
                 try:
@@ -223,7 +226,9 @@ class InferenceTree:
                     logger.debug(f"Node {output_stack[-1]} has no children, skipping tempholding slot clearing")
 
                 #if the current top-of-stack is root, return the result
-                if output_stack[-1] == tree.root: return summary #NOTE: perhaps make this summary be separate so the user can define user readable formatting?
+                if output_stack[-1] == tree.root: 
+                    print()
+                    return summary #NOTE: perhaps make this summary be separate so the user can define user readable formatting?
 
                 #With context from summary, apply depth-appropriate agent(s) to top-of-stack node
                 current_agents = self._get_agents(tree, output_stack[-1])
@@ -235,7 +240,6 @@ class InferenceTree:
                 #append output from agents to the temp_holding level keyed to the new top-of-stack
                 temp_holding[output_stack[-1]].append(current_agent_output)
 
-                g.update(tree.get_node(output_stack[-1]).data.depth)
         #If the while loop completes, then the return statement never triggered
         raise Exception("Return statement never triggered, likely a problem with tree initialization!")
 

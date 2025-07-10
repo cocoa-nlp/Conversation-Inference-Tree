@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from huggingface_hub import login
 import openai
 import pynvml
+import re
 
 from .logger import logger
 from .agent import _Agent
@@ -95,7 +96,13 @@ class _ModelWrapper:
 
         if self.model_origin == "hf":
             response = self.model(formatted_input, return_full_text=False)[0]["generated_text"]
-            logger.debug(f"huggingface call for prompt\n{formatted_input}\ngave output\n{response}") #NOTE: Keep in single line?
+            logger.debug(f"huggingface call for prompt: {formatted_input} GAVE OUTPUT {response}") #NOTE: Keep in single line?
+            if re.match(r".*\btext\b(?:\s+\b\w+\b){0,5}\s+\bsummarize\b.*", response):
+                print("An empty input was detected by the LLM in the following entry:\n")
+                print(formatted_input)
+                print("\nThe response:")
+                print(response)
+                exit()
             return response
         elif self.model_origin == "openai":
                 response = openai.ChatCompletion.create(
@@ -103,7 +110,7 @@ class _ModelWrapper:
                     message=formatted_input,
                     config=self.model["config"]
                 )
-                logger.debug(f"openai call for prompt\n{formatted_input}\ngave output\n{response['choices'][0]['message']['content']}")
+                logger.debug(f"openai call for prompt: {formatted_input} GAVE OUTPUT {response['choices'][0]['message']['content']}")
                 return response['choices'][0]['message']['content']
         else:
             logger.error("model failed generation step")

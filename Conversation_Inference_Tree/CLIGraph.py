@@ -67,7 +67,7 @@ class CLIGraph:
         # Clear previous output and print updated graph
         lines_to_move_up = 0
         if self.current_iter > 1:
-            lines_to_move_up = self.range_size + 2  # number of printed lines (full_header + graph + footer)
+            lines_to_move_up = self.range_size + 1  # number of printed lines (full_header + graph + footer)
         sys.stdout.write(f"\033[{lines_to_move_up}A")
         sys.stdout.write(f'\r{printable}')
         sys.stdout.flush()
