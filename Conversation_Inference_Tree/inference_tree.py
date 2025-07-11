@@ -62,7 +62,7 @@ class InferenceTree:
         summarizer_list: list[dict] = [
             {
                 "question": "Summarize the text in 150 words or less.",
-                "depth": -99 #NOTE: is -99 to avoid keyerrors when wrapping into agent
+                "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent
             },
         ],
         question_list: list[dict] = [
@@ -140,9 +140,12 @@ class InferenceTree:
     def _get_agents(self, tree_object, top_stack_id):
         """returns the agents for the depth of the current top-of-stack node in a list"""
         #Pull out the top-of-stack node object from the treelib
-        top_stack_node = tree_object.get_node(top_stack_id)
-        #Use list comprehension to store all agents at the correct depth in a list
-        current_depth_agents = [a for a in self.agent_list if a.depth == top_stack_node.data.depth]
+        current_depth_agents = []
+        current_depth = tree_object.get_node(top_stack_id).data.depth
+        while len(current_depth_agents) == 0:
+            #Use list comprehension to store all agents at the correct depth in a list
+            current_depth_agents = [a for a in self.agent_list if a.depth == current_depth]
+            current_depth -= 1
         return current_depth_agents
     
     def _do_agent_processing(self, current_agents, tree_object, top_stack_id, prev_summary):
@@ -167,11 +170,19 @@ class InferenceTree:
                 "text_body": top_stack_node.data.body,
                 "summary": prev_summary
             })
+            if text == "":
+                print()
+                print("Agent gen call -- Text failed to format correctly and ended up as an empty string!")
+                print(f"- top_stack_node.data.body = {top_stack_node.data.body}")
+                print(f"- prev_summary = [prev_summary]")
+                exit()
             output = self.agent_format.format({
                 "prev_output": output,
                 "question": a.query,
                 "gen": self.llm.generate(text, a),
             })
+            if output == "":
+                print("Output returned an empty string!")
         return output
 
     def _do_summary_processing(self, current_holding: list):
@@ -194,6 +205,13 @@ class InferenceTree:
             output = ""
             for batch in batch_holding:
                 batch_text = "\n\n".join(batch)
+                if batch_text == "":
+                    print() #NOTE: Migrate output to debug log line
+                    print("Batch found empty when preparing for child summary generation!")
+                    print(f"batch size: {len(batch)} (content: {batch})")
+                    print(f"batch_holding size: {len(batch_holding)} (content: {batch_holding})")
+                    print(f"Pre-batch split size: {len(current_holding)} (content: {current_holding})")
+                    exit()
                 output = self.summary_format.format({
                     "prev_output": output,
                     "gen": self.llm.generate(batch_text, summarizer_agent)
@@ -225,7 +243,14 @@ class InferenceTree:
             else:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 if self.graph: g.update(tree.get_node(output_stack[-1]).data.depth)
-                summary = self._do_summary_processing(current_holding)
+                if current_holding != [""]: 
+                    summary = self._do_summary_processing(current_holding)
+                else:#NOTE: orphaned error checking
+                    print()
+                    print("Current_holding was found empty")
+                    print(f"- current_holding: {current_holding}")
+                    print(f"- tempholding.get(output_stack[-1]): {temp_holding.get(output_stack[-1])}")
+                    exit()
                 #Clear the now-used entry in temp-holding
                 try:
                     del temp_holding[output_stack[-1]]
@@ -238,13 +263,16 @@ class InferenceTree:
 
                 #With context from summary, apply depth-appropriate agent(s) to top-of-stack node
                 current_agents = self._get_agents(tree, output_stack[-1])
-                current_agent_output = self._do_agent_processing(current_agents, tree, output_stack[-1], summary)
-                  
-                #Remove completed node from top of the stack
-                output_stack.pop()
+                current_agent_output = self._do_agent_processing(current_agents, tree, output_stack[-1], summary)             
                 
                 #append output from agents to the temp_holding level keyed to the new top-of-stack
-                temp_holding[output_stack[-1]].append(current_agent_output)
+                temp_holding[tree.get_node(output_stack[-1]).data.parent_id].append(current_agent_output)
+
+                if current_agent_output == "":
+                    print(f"current_agent_output is an empty string for node {output_stack[-1]} and was added as a child of node {tree.get_node(output_stack[-1]).data.parent_id}")   
+
+                #Remove completed node from top of the stack
+                output_stack.pop()
 
         #If the while loop completes, then the return statement never triggered
         raise Exception("Return statement never triggered, likely a problem with tree initialization!")

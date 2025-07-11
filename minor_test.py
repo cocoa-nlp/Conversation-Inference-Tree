@@ -26,7 +26,7 @@ q_list = [
     },
 ]
 #Threads stands for the list of RedditWrapper objects
-inference_object = InferenceTree(model, "hf", q_list) 
+inference_object = InferenceTree(model, "hf", q_list, graph=True) 
 summary = inference_object.process_thread(thread, data_type="json")
 
 #Temporary print for testing purposes

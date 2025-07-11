@@ -73,3 +73,5 @@ class CLIGraph:
         sys.stdout.flush()
 
         self.current_iter += 1
+
+#理  Use this character somewhere?

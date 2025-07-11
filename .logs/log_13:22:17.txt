@@ -1,8 +1,0 @@
-2025-07-10 13:22:20,011 - INFO - No CUDA device found, skipping device finding function.
-2025-07-10 13:22:21,481 - DEBUG - setting agent for question: 'Summarize the text in 150 words or less.'
-2025-07-10 13:22:21,481 - DEBUG - setting agent for question: 'Give a paragraph conveying some main points contained within this social media comment and its summarized replies.'
-2025-07-10 13:22:21,481 - DEBUG - setting agent for question: 'Summarize the content of this reply'
-2025-07-10 13:22:21,481 - INFO - inference object initialized
-2025-07-10 13:22:21,481 - DEBUG - thread converted to wrapper objects
-2025-07-10 13:22:21,481 - DEBUG - doing recursion for: 1l3aknm
-2025-07-10 13:22:21,481 - ERROR - Node 1l3aknm has invalid depth!

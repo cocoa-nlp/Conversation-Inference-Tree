@@ -1,6 +1,0 @@
-2025-07-10 14:16:35,491 - INFO - No CUDA device found, skipping device finding function.
-2025-07-10 14:16:36,498 - DEBUG - setting agent for question: 'Summarize the text in 150 words or less.'
-2025-07-10 14:16:36,498 - DEBUG - setting agent for question: 'Give a paragraph conveying some main points contained within this social media comment and its summarized replies.'
-2025-07-10 14:16:36,498 - DEBUG - setting agent for question: 'Summarize the content of this reply'
-2025-07-10 14:16:36,499 - INFO - inference object initialized
-2025-07-10 14:16:36,499 - DEBUG - thread converted to wrapper objects

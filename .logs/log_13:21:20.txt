@@ -1,2 +1,0 @@
-2025-07-10 13:21:22,301 - INFO - No CUDA device found, skipping device finding function.
-2025-07-10 13:21:23,928 - DEBUG - setting agent for question: 'Summarize the text in 150 words or less.'

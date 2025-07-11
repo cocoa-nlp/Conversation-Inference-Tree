@@ -97,15 +97,18 @@ class _ModelWrapper:
         Returns:
         response -- Ultimately a single string, execution will vary by model_origin parameter.
         """
+        if input == '':
+            raise ValueError("Text input was found to be empty when constructing prompt!")
         formatted_input = agent.form_prompt(input)
 
         if self.model_origin == "hf":
             response = self.model(formatted_input, return_full_text=False)[0]["generated_text"]
             logger.debug(f"huggingface call for prompt: {formatted_input} GAVE OUTPUT {response}") #NOTE: Keep in single line?
             if re.match(r".*\btext\b(?:\s+\b\w+\b){0,5}\s+\bsummarize\b.*", response):
+                print()
                 print("An empty input was detected by the LLM in the following entry:\n")
-                print(formatted_input)
-                print("\nThe response:")
+                print(input)
+                print("\nThe response the model gave was:\n")
                 print(response)
                 exit()
             return response
