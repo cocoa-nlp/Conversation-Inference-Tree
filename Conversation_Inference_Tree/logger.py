@@ -13,3 +13,14 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+###################################################################################
+
+log_progress = logging.getLogger(__name__)
+
+log_progress.setLevel(logging.INFO)
+
+progress_handler = logging.FileHandler(f"./.logs/progress_{current_time}.txt")
+
+progress_handler.setFormatter(formatter)
+log_progress.addHandler(progress_handler)

@@ -6,7 +6,7 @@ import openai
 import pynvml
 import re
 
-from .logger import logger
+from .logger import logger, log_progress
 from .agent import _Agent
 
 class _ModelWrapper:
@@ -103,14 +103,11 @@ class _ModelWrapper:
 
         if self.model_origin == "hf":
             response = self.model(formatted_input, return_full_text=False)[0]["generated_text"]
-            logger.debug(f"huggingface call for prompt: {formatted_input} GAVE OUTPUT {response}") #NOTE: Keep in single line?
+            log_progress.info(f"Prompt: {formatted_input} GAVE OUTPUT {response}")
+            
             if re.match(r".*\btext\b(?:\s+\b\w+\b){0,5}\s+\bsummarize\b.*", response):
-                print()
-                print("An empty input was detected by the LLM in the following entry:\n")
-                print(input)
-                print("\nThe response the model gave was:\n")
-                print(response)
-                exit()
+                logger.error(f"An empty input was detected by the LLM in the following entry: '{input}.'  The response the model gave was: '{response}.'")
+
             return response#NOTE: Create a try-except block to catch None values here
         elif self.model_origin == "openai":
                 response = openai.ChatCompletion.create(
@@ -118,7 +115,7 @@ class _ModelWrapper:
                     message=formatted_input,
                     config=self.model["config"]
                 )
-                logger.debug(f"openai call for prompt: {formatted_input} GAVE OUTPUT {response['choices'][0]['message']['content']}")
+                logger.info(f"Prompt: {formatted_input} GAVE OUTPUT {response['choices'][0]['message']['content']}")
                 return response['choices'][0]['message']['content']
         else:
             logger.error("model failed generation step")
