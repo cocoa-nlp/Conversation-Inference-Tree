@@ -111,7 +111,7 @@ class _ModelWrapper:
                 print("\nThe response the model gave was:\n")
                 print(response)
                 exit()
-            return response
+            return response#NOTE: Create a try-except block to catch None values here
         elif self.model_origin == "openai":
                 response = openai.ChatCompletion.create(
                     model=self.model["model"],
