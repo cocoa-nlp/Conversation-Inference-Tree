@@ -64,6 +64,10 @@ class InferenceTree:
                 "question": "Summarize the text in 150 words or less.",
                 "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent
             },
+            {
+                "question": "Give a report on the reddit post, along with its following text bodies containing information about the conversations it started.",
+                "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent                
+            }
         ],
         question_list: list[dict] = [
             {
@@ -185,12 +189,13 @@ class InferenceTree:
                 print("Output returned an empty string!")
         return output
 
-    def _do_summary_processing(self, current_holding: list):
+    def _do_summary_processing(self, current_holding: list, summarizer_num: int):
         """
         This function takes the agent output from a node's child nodes and uses the llm to get a summary.
 
         Args:
         current_holding -- A list of a given node's child node agent outputs in single string form
+        summarizer_num -- either 0 or 1, depending on whether this summary will use the first or second summarizer question.
 
         Returns:
         output -- A single string containing the summary
@@ -199,19 +204,13 @@ class InferenceTree:
         if len(current_holding) > 0:
             #Split the stored outputs into batches to be given to the summarizer
             batch_holding = self._split_into_batches(current_holding, self.children_per_summary)
-            summarizer_agent = self.summarizer_list[0]#NOTE: keep 0 until multiple summarizer functionality added
+            summarizer_agent = self.summarizer_list[summarizer_num]
             
             #Summarize current_holding
             output = ""
             for batch in batch_holding:
                 batch_text = "\n\n".join(batch)
-                if batch_text == "":
-                    print() #NOTE: Migrate output to debug log line
-                    print("Batch found empty when preparing for child summary generation!")
-                    print(f"batch size: {len(batch)} (content: {batch})")
-                    print(f"batch_holding size: {len(batch_holding)} (content: {batch_holding})")
-                    print(f"Pre-batch split size: {len(current_holding)} (content: {current_holding})")
-                    exit()
+
                 output = self.summary_format.format({
                     "prev_output": output,
                     "gen": self.llm.generate(batch_text, summarizer_agent)
@@ -243,23 +242,18 @@ class InferenceTree:
             else:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 if self.graph: g.update(tree.get_node(output_stack[-1]).data.depth)
-                if current_holding != [""]: 
-                    summary = self._do_summary_processing(current_holding)
-                else:#NOTE: orphaned error checking
-                    print()
-                    print("Current_holding was found empty")
-                    print(f"- current_holding: {current_holding}")
-                    print(f"- tempholding.get(output_stack[-1]): {temp_holding.get(output_stack[-1])}")
-                    exit()
+
+                #if the current top-of-stack is root, return the result
+                if output_stack[-1] == tree.root: 
+                    return self._do_summary_processing(current_holding, 1)
+
+                summary = self._do_summary_processing(current_holding, 0)
+
                 #Clear the now-used entry in temp-holding
                 try:
                     del temp_holding[output_stack[-1]]
                 except KeyError:
                     logger.debug(f"Node {output_stack[-1]} has no children, skipping tempholding slot clearing")
-
-                #if the current top-of-stack is root, return the result
-                if output_stack[-1] == tree.root: 
-                    return summary
 
                 #With context from summary, apply depth-appropriate agent(s) to top-of-stack node
                 current_agents = self._get_agents(tree, output_stack[-1])
