@@ -22,7 +22,7 @@ reddit = praw.Reddit(
 os.makedirs("Conversation-Inference-Tree/posts", exist_ok=True)
 
 # Get top 10 hot posts from r/teenagers
-subreddit = reddit.subreddit("teenagers")
+subreddit = reddit.subreddit("Teachers")
 for post in subreddit.hot(limit=10):
     post.comments.replace_more(limit=0)  # Flatten comments
 

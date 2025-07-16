@@ -98,6 +98,13 @@ class InferenceTree:
             template = "{prev_output}{gen}{sep}",
             user_vars = {"sep": "\n\n"}
         ), 
+        final_summary_input_format: OutputFormatter = OutputFormatter(
+            template = "{root_prefix}{root}{sep}{comment_summaries}",
+            user_vars = {
+                "root_prefix": "Here is the body text of the post:\n",
+                "sep": "\nHere is a number of summaries of the post comments' content:\n"
+            }
+        ),
         prompt_type: str = "role",
         children_per_summary: int = 5,
         graph: bool = True
@@ -107,6 +114,7 @@ class InferenceTree:
         self.agent_format = agent_format
         self.agent_input_format = agent_input_format
         self.summary_format = summary_format
+        self.final_summary_input_format = final_summary_input_format
         self.graph = graph
 
         self.llm = _ModelWrapper(model_name=model_name, model_origin=model_origin, model_params=model_params)
@@ -189,13 +197,12 @@ class InferenceTree:
                 print("Output returned an empty string!")
         return output
 
-    def _do_summary_processing(self, current_holding: list, summarizer_num: int):
+    def _do_summary_processing(self, current_holding: list):
         """
         This function takes the agent output from a node's child nodes and uses the llm to get a summary.
 
         Args:
         current_holding -- A list of a given node's child node agent outputs in single string form
-        summarizer_num -- either 0 or 1, depending on whether this summary will use the first or second summarizer question.
 
         Returns:
         output -- A single string containing the summary
@@ -204,22 +211,27 @@ class InferenceTree:
         if len(current_holding) > 0:
             #Split the stored outputs into batches to be given to the summarizer
             batch_holding = self._split_into_batches(current_holding, self.children_per_summary)
-            summarizer_agent = self.summarizer_list[summarizer_num]
             
             #Summarize current_holding
             output = ""
             for batch in batch_holding:
-                batch_text = "\n\n".join(batch)
+                batch_text = "\nNext Summary Text:\n".join(batch)
 
                 output = self.summary_format.format({
                     "prev_output": output,
-                    "gen": self.llm.generate(batch_text, summarizer_agent)
+                    "gen": self.llm.generate(batch_text, self.summarizer_list[0])
                 })
             return output
 
     def _do_summary_and_agent(self, tree):
         """
-        
+        This function contains the main logic of the script, and handles the loop that traverses through each comment
+        tree until the the stack "output_stack" has been depleted down to the root-node.
+
+        Args:
+
+        Returns:
+
         """
         output_stack = deque()
         temp_holding = defaultdict(list)
@@ -243,11 +255,15 @@ class InferenceTree:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 if self.graph: g.update(tree.get_node(output_stack[-1]).data.depth)
 
-                #if the current top-of-stack is root, return the result
-                if output_stack[-1] == tree.root: 
-                    return self._do_summary_processing(current_holding, 1)
+                summary = self._do_summary_processing(current_holding)
 
-                summary = self._do_summary_processing(current_holding, 0)
+                #if the current top-of-stack is root, return the result
+                if output_stack[-1] == tree.root:
+                    formatted_output = self.final_summary_input_format({
+                        "root": tree.get_node(output_stack[-1]).data.body,
+                        "comment_summaries": summary
+                    })
+                    return self.llm.generate(formatted_output, self.summarizer_list[1])
 
                 #Clear the now-used entry in temp-holding
                 try:
