@@ -9,30 +9,32 @@ This package was made to allow a user to generate a summarized explanation of an
 
 ### git clone
 ```bash
-Need to retrieve github https
+git clone https://github.com/cocoa-nlp/Conversation-Inference-Tree.git
 cd Conversation-Inference-Tree
 ```
 ## Basic Usage Example
 ```python
 from Conversation_Inference_Tree.inference_tree import InferenceTree
 import json
+import os
 
-#Load the data you want to get a summary of.
-with open("scraped_reddit_thread.json", "r", encoding="utf-8") as f:
+#Retrieve the data to be processed from its json file
+with open("post_1m0350d.json", "r", encoding="utf-8") as f:
     thread = json.load(f)
 
-#Instantiate the InferenceTree object.  Make sure to do this outside of any loops!
-inference_object = InferenceTree()
-#Set the llm that will be used for generation by inference_object's internal logic.
-inference_object.set_llm(model_name="meta-llama/Llama-3.2-3B-Instruct", model_type="hf")
+#Define the model id to be used
+model = "meta-llama/Llama-3.1-8B-Instruct"
 
-#Set the summarizer and the agents.
-#NOTE: Functionality pending
+#Initialize the object(outside of any loops)
+inference_object = InferenceTree(model, "hf") 
 
-#Trigger inference
-summary = inference_object.process_thread(data=thread, data_type="json")
+#Process the conversation(inside loop if processing multiple conversations)
+summary = inference_object.process_thread(thread, data_type="json")
 
-print(summary)
+#Save summary
+text_file = open(thread["id"] + ".txt", "w")
+text_file.write(summary)
+text_file.close()
 ```
 
 ## Liscense

@@ -9,11 +9,11 @@ class _Tree:
     This class is used for turning reddit conversation data into a usable treelib object.
 
     Methods:
-        _recursive_node: A private function to be called by __init__.  Recursively adds an 
-                         an entered node's child nodes to the tree.  Utilizes leftmost traversal.
+        _get_children(parent_id): retrieves all of a given comment's wrapped child comment objects.
+        _recursive_node(parent_id): Recursively adds an an entered node's child nodes to the tree.  Utilizes leftmost traversal.
     Args:
         raw_submission: Takes the post and replies to be analyzed.  Currently only takes 
-                        json data made by a praw object.  In the future, this will also
+                        json data made by a praw object.  #NOTE:In the future, this will also
                         take praw objects and psaw objects directly.
     """
 
@@ -25,10 +25,11 @@ class _Tree:
         if isinstance(raw_submission, dict):
             comments = raw_submission.get("comments", [])
         else:
-            comments = raw_submission.comments        
+            comments = raw_submission.comments
 
         #this will become the root node
         submission = _RedditWrapper(raw_submission)
+
         #get reddit_wrappers for all comments
         for comment in comments:
             wrapped_comment = _RedditWrapper(comment)

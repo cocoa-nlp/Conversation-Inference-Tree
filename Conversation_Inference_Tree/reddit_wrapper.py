@@ -15,11 +15,12 @@ class _RedditWrapper:
         if isinstance(source, dict):
             parent_id = source.get('parent_id')
             depth = -1
+
+            #triggers if current comment being stored is the post itself
             if parent_id is not None:
                 parent_id = parent_id.split("_")[1]
                 depth = source.get('depth')
 
-            
             self.id = source.get('id')
             self.body = source.get('body')
             if self.body == None:

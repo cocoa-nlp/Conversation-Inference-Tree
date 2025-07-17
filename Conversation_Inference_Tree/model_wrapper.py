@@ -16,9 +16,11 @@ class _ModelWrapper:
     OpenAI API, without any additional tweaks outside of initialization.
 
     Methods:
-        generate: takes the arguement "input", and passes it to the model for processing before
-                  returning the model output.  Make sure to use the agent class's form_prompt()
-                  function on an input to get it in the right format before passing.
+        _get_gpu_with_most_free_memory(): If there is more than one gpu, finds the one with the most free
+                                         memory and returns its id as a string.
+        generate(input, agent): takes the arguement "input", and passes it to the model for processing before
+                                returning the model output.  Make sure to use the agent class's form_prompt()
+                                function on an input to get it in the right format before passing.
     
     Args:
         model_name: The reference name for the model.  Example: "meta-llama/Llama-3.2-3B-Instruct" for
@@ -33,7 +35,7 @@ class _ModelWrapper:
         self.model_origin = model_origin     
 
         load_dotenv()
-        best_gpu = self.get_gpu_with_most_free_memory()
+        best_gpu = self._get_gpu_with_most_free_memory()
         if best_gpu is not None: os.environ["CUDA_VISIBLE_DEVICES"] = best_gpu
         os.environ["TORCH_USE_CUDA_DSA"] = "1"
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" 
@@ -64,7 +66,8 @@ class _ModelWrapper:
             logger.error("model origin selected incorrectly, failed to load model")
             #raise TypeError(f"model_origin of '{model_origin}' incorrect, must be 'hf', 'openai'")
 
-    def get_gpu_with_most_free_memory(self):
+    def _get_gpu_with_most_free_memory(self):
+        """returns the id of the gpu with the most unused memory"""
         try:
             pynvml.nvmlInit()
             device_count = pynvml.nvmlDeviceGetCount()
@@ -83,7 +86,6 @@ class _ModelWrapper:
         except:
             logger.info("No CUDA device found, skipping device finding function.")
             return None
-
 
     def generate(self, input: str, agent: _Agent):
         """
@@ -108,7 +110,7 @@ class _ModelWrapper:
             if re.match(r".*\btext\b(?:\s+\b\w+\b){0,5}\s+\bsummarize\b.*", response):
                 logger.error(f"An empty input was detected by the LLM in the following entry: '{input}.'  The response the model gave was: '{response}.'")
 
-            return response#NOTE: Create a try-except block to catch None values here
+            return response
         elif self.model_origin == "openai":
                 response = openai.ChatCompletion.create(
                     model=self.model["model"],
