@@ -22,6 +22,8 @@ class _RedditWrapper:
             
             self.id = source.get('id')
             self.body = source.get('body')
+            if self.body == None:
+                self.body = source.get('selftext')
             self.author = source.get('author')
             self.parent_id = parent_id
             self.depth = depth

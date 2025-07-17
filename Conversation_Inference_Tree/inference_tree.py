@@ -65,7 +65,7 @@ class InferenceTree:
                 "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent
             },
             {
-                "question": "Give a report on the reddit post, along with its following text bodies containing information about the conversations it started.",
+                "question": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",
                 "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent                
             }
         ],
@@ -183,7 +183,7 @@ class InferenceTree:
                 "summary": prev_summary
             })
             if text == "":
-                print()
+                print() #NOTE: orphaned error checking
                 print("Agent gen call -- Text failed to format correctly and ended up as an empty string!")
                 print(f"- top_stack_node.data.body = {top_stack_node.data.body}")
                 print(f"- prev_summary = [prev_summary]")
@@ -236,7 +236,7 @@ class InferenceTree:
         output_stack = deque()
         temp_holding = defaultdict(list)
 
-        #Add top comment(post) to stack
+        #Add top comment(post) to stack  
         output_stack.append(tree.root)
 
         #Loop continues till the stack is completely emptied
@@ -259,7 +259,7 @@ class InferenceTree:
 
                 #if the current top-of-stack is root, return the result
                 if output_stack[-1] == tree.root:
-                    formatted_output = self.final_summary_input_format({
+                    formatted_output = self.final_summary_input_format.format({
                         "root": tree.get_node(output_stack[-1]).data.body,
                         "comment_summaries": summary
                     })
@@ -302,7 +302,6 @@ class InferenceTree:
         #If input_location is not equal to "", pull data from json files
         conversation_tree = _Tree(data).tree
         logger.info("tree populated")
-
         inference_summary = self._do_summary_and_agent(conversation_tree)
 
         logger.info("All conversations processed")
