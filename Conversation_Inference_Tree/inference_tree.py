@@ -6,7 +6,7 @@ from .tree import _Tree
 from .agent import _Agent
 from .model_wrapper import _ModelWrapper
 from .logger import logger
-from .CLIGraph import CLIGraph
+from cligraph import CLIGraph
 
 class OutputFormatter:
     """
@@ -70,13 +70,12 @@ class InferenceTree:
                     for example, a huggingface model could be "meta-llama/Llama-3.2-3B-Instruct"
     model_origin -- selects a model handler.  If "hf" is passed in, then model_name model is a 
                     huggingface model.  If "openai" is passed in, then the questions are treated
-                    as calls to the OpenAI API. #NOTE: double-check the api login functionality
+                    as calls to the OpenAI API.
     summarizer_list -- a list of dictionaries containing two summary entries.  The first will be applied to the children outputs
                        for each comment as part of its processing step.  The second will be applied to aggregate data from all 
                        top-level-comment outputs along with root to make the final output.
         {
-            "question": put the summary question here
-            "depth": put as -99 #NOTE: temporary variable, remove later.
+            "question": put the summary question here 
         }
     question_list -- a list of dictionaries containing the agent data.
         {
@@ -115,14 +114,8 @@ class InferenceTree:
         model_name: str, 
         model_origin: str, 
         summarizer_list: list[dict] = [
-            {
-                "question": "Summarize the text in 150 words or less.",
-                "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent
-            },
-            {
-                "question": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",
-                "depth": -99 #NOTE: is -99 for now to avoid keyerrors when wrapping into agent                
-            }
+            {"question": "Summarize the text in 150 words or less."},
+            {"question": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",}
         ],
         question_list: list[dict] = [
             {
@@ -179,7 +172,7 @@ class InferenceTree:
         for summarizer in summarizer_list:
             self.summarizer_list.append(_Agent(
                                             query=summarizer.get("question"),
-                                            depth=summarizer["depth"], 
+                                            depth=-99, 
                                             prompt_type=prompt_type
                                         ))
 
@@ -237,12 +230,9 @@ class InferenceTree:
                 "text_body": top_stack_node.data.body,
                 "summary": prev_summary
             })
+            #Error Checking
             if text == "":
-                print() #NOTE: orphaned error checking
-                print("Agent gen call -- Text failed to format correctly and ended up as an empty string!")
-                print(f"- top_stack_node.data.body = {top_stack_node.data.body}")
-                print(f"- prev_summary = [prev_summary]")
-                exit()
+                logger.error(f"\nAgent generation failed, empty string!")
             output = self.agent_output_format._format({
                 "prev_output": output,
                 "question": a.query,

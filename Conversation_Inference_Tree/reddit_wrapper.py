@@ -6,9 +6,9 @@ class _RedditWrapper:
     object.
 
     Args:
-        source: the raw input of the entire conversation.  Currently only takes the json data
-                created from saving a praw object, but will directly take praw and psaw objects
-                in the future.
+    source -- the raw input of the entire conversation.  Currently only takes the json data
+              created from saving a praw object, but will directly take praw and psaw objects
+              in the future.
     """
 
     def __init__(self, source):
@@ -25,7 +25,6 @@ class _RedditWrapper:
             self.body = source.get('body')
             if self.body == None:
                 self.body = source.get('selftext')
-            self.author = source.get('author')
             self.parent_id = parent_id
             self.depth = depth
         
@@ -33,7 +32,6 @@ class _RedditWrapper:
             # Likely a Comment object
             self.id = source.id
             self.body = source.body
-            self.author = str(source.author) if source.author else None
             self.parent_id = source.parent_id
             self.depth = getattr(source, 'depth', None)
 
@@ -41,7 +39,6 @@ class _RedditWrapper:
             # Likely a Submission object
             self.id = source.id
             self.body = f"{source.title}\n\n{source.selftext}".strip()
-            self.author = str(source.author) if source.author else None
             self.parent_id = None
             self.depth = 0
 
