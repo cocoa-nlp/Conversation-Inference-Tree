@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Conversation_Inference_Tree"
+version = "0.1.0"
+description = "This package was made to allow a user to generate a summarized explanation of any provided reddit thread, by applying a series of user-created questions in a predetermined logical sequence.  The intended use case is to allow the user to extract the underlying reasoning of conversations about a given subject at a massive scale, then save those inferences to create a dataset or report."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Brayden Cloutier"}]
+requires-python = ">=3.8"
+dependencies = [
+    "cligraph==0.1.2",
+    "huggingface_hub==0.32.4",
+    "nvidia_ml_py==12.575.51",
+    "openai==1.97.0",
+    "praw==7.8.1",
+    "pynvml==12.0.0",
+    "python-dotenv==1.1.1",
+    "transformers==4.52.4",
+    "treelib==1.7.1"
+]
