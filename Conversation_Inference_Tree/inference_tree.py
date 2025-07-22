@@ -114,55 +114,66 @@ class InferenceTree:
         model_name: str, 
         model_origin: str, 
         summarizer_list: list[dict] = [
-            {"question": "Summarize the text in 150 words or less."},
-            {"question": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",}
+            {
+                "question": "Summarize the text in 150 words or less.",
+                "depth": 1,
+                "input_template": "{text}",
+                "input_vars": {},
+                "output_template": "{prev_output}{sep}{gen}",
+                "output_vars": {
+                    "sep": "Next summary text:"
+                }
+
+            },
+            {
+                "question": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",
+                "depth": 0,
+                "input_template": "{prefix}{root}{sep}{comment_summaries}",
+                "input_vars": {
+                    "prefix": "Here is the body text of the post:\n",
+                    "sep": "\nHere is a number of summaries of the post comments' content:\n"
+                },
+                "output_template": "{gen}",
+                "output_vars": {}
+            }
         ],
         question_list: list[dict] = [
             {
                 "question": "Tell me what the subject of this conversation is, and the sentiment expressed about the subject.",
                 "depth": 0,
+                "input_template": "{text_body}{summary_prefix}{summary}",
+                "input_vars": {
+                    "summary_prefix": "\nHere is a summary of the response to this comment:\n"
+                },
+                "output_template": "{prev_output}{question_prefix}{question}{question_suffix}{gen}{sep}",
+                "output_vars": {
+                    "question_prefix": "The output for the question \"",
+                    "question_suffix": "\" is:\n",
+                    "sep": "\n\n"
+                }
             },
             {
                 "question": "Tell me what this reply is talking about and what the author probably feels about the subject.",
-                "depth": 1
+                "depth": 1,
+                "input_template": "{text_body}{summary_prefix}{summary}",
+                "input_vars": {
+                    "summary_prefix": "\nHere is a summary of the response to this comment:\n"
+                },
+                "output_template": "{prev_output}{question_prefix}{question}{question_suffix}{gen}{sep}",
+                "output_vars": {
+                    "question_prefix": "The output for the question \"",
+                    "question_suffix": "\" is:\n",
+                    "sep": "\n\n"
+                }
             },
         ], 
         prompt_type: str = "role",
         children_per_summary: int = 5,
         model_params: dict = {}, 
-        agent_input_format: OutputFormatter = OutputFormatter(
-            template = "{text_body}{summary_prefix}{summary}",
-            user_vars = {
-                "summary_prefix": "\nHere is a summary of the response to this comment:\n"
-            }
-        ),
-        agent_output_format: OutputFormatter = OutputFormatter(
-            template = "{prev_output}{question_prefix}{question}{question_suffix}{gen}{sep}",
-            user_vars = {
-                "question_prefix": "The output for the question \"",
-                "question_suffix": "\" is:\n",
-                "sep": "\n\n"
-            }
-        ),
-        children_summary_format: OutputFormatter = OutputFormatter(
-            template = "{prev_output}{gen}{sep}",
-            user_vars = {"sep": "\n\n"}
-        ), 
-        final_summary_input_format: OutputFormatter = OutputFormatter(
-            template = "{root_prefix}{root}{sep}{comment_summaries}",
-            user_vars = {
-                "root_prefix": "Here is the body text of the post:\n",
-                "sep": "\nHere is a number of summaries of the post comments' content:\n"
-            }
-        ),
         graph: bool = True
     ):
         self.agent_list = []
         self.children_per_summary = children_per_summary 
-        self.agent_output_format = agent_output_format
-        self.agent_input_format = agent_input_format
-        self.children_summary_format = children_summary_format
-        self.final_summary_input_format = final_summary_input_format
         self.graph = graph
 
         self.llm = _ModelWrapper(model_name=model_name, model_origin=model_origin, model_params=model_params)
