@@ -1,12 +1,13 @@
-import praw
 import json
 import os
 
+import praw
+
 # 🔐 Replace with your actual credentials
-REDDIT_CLIENT_ID = '2mjKGlb4CB82lOWEL47Ycg'
-REDDIT_CLIENT_SECRET = 'XMhQUt0I-IRT8HHCKc1GefHd3z3CMA'
-REDDIT_USERNAME = 'Previous_Range9377'
-REDDIT_PASSWORD = 'Pickle123!'
+REDDIT_CLIENT_ID = 'Placeholder'
+REDDIT_CLIENT_SECRET = 'Placeholder'
+REDDIT_USERNAME = 'Placeholder'
+REDDIT_PASSWORD = 'Placeholder'
 REDDIT_USER_AGENT = 'Basic Test Scraper'
 
 # Authenticate
@@ -38,7 +39,8 @@ for post in subreddit.hot(limit=10):
     }
 
     # Get top 10 comments
-    for comment in post.comments.list():#[:10]:  # First 20 comments at any depth
+    # [:10]:  # First 20 comments at any depth
+    for comment in post.comments.list():
         post_data["comments"].append({
             "author": comment.author.name if comment.author else "[deleted]",
             "body": comment.body,

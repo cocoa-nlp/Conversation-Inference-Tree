@@ -1,18 +1,24 @@
 # Conversation-Inference-Tree
 
 ## What is this package for?
+
 This package was made to allow a user to generate a summarized explanation of any provided reddit thread, by applying a series of user-created questions in a predetermined logical sequence.  The intended use case is to allow the user to extract the underlying reasoning of conversations about a given subject at a massive scale, then save those inferences to create a dataset or report. A more detailed explanation of how the package logic operates can be found [here](docs/overview.md).
 
 ## Installing the package
+
 ### pip install
+
 *Pending publishing of package*
 
 ### git clone
+
 ```bash
 git clone https://github.com/cocoa-nlp/Conversation-Inference-Tree.git
 cd Conversation-Inference-Tree
 ```
+
 ## Basic Usage Example
+
 ```python
 from Conversation_Inference_Tree.inference_tree import InferenceTree
 import json
@@ -38,9 +44,11 @@ text_file.close()
 ```
 
 ## Liscense
+
 *Need a liscense*
 
 ## Documentation
+
 - [Overview](docs/overview.md)
 - [Usage\ Examples](docs/usage.md)
 - [API\ Reference](docs/api.md)

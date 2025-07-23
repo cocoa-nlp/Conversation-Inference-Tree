@@ -1,10 +1,10 @@
-from Conversation_Inference_Tree.inference_tree import InferenceTree
 import json
 import os
 
+from Conversation_Inference_Tree.inference_tree import InferenceTree
 
-#Temporary test code space
-#load json files into list with name "threads"
+# Temporary test code space
+# load json files into list with name "threads"
 file_names = os.listdir("posts")
 threads = []
 summaries = []
@@ -29,12 +29,13 @@ q_list = [
         "depth": 1
     },
 ]
-#Threads stands for the list of RedditWrapper objects
-inference_object = InferenceTree(model, "hf", q_list) #NOTE: real options are either hf or openai
+# Threads stands for the list of RedditWrapper objects
+# NOTE: real options are either hf or openai
+inference_object = InferenceTree(model, "hf", q_list)
 for thread in threads:
     summary = inference_object.process_thread(thread, data_type="json")
 
-    #Temporary print for testing purposes
+    # Temporary print for testing purposes
     print(summary)
     exit()
 
