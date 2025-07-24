@@ -8,43 +8,6 @@ from .model_wrapper import _ModelWrapper
 from .logger import logger
 from cligraph import CLIGraph
 
-class OutputFormatter:
-    """
-    This class is a wrapper for python's template functionality.  The wrapper allows users to utilize
-    dictionaries to pass in variables for ease of format customization.
-
-    Methods:
-    _format(vars) -- used in internal logic to add data into user-templated strings.
-
-    Args:
-    template -- a string containing a series of variable declarations within {}.  Depending on the format being
-                initialized, will have different variables that are mandatory to be declared by the user.
-    user_vars -- A dictionary that matches to template.  MUST contain all variables that are not defined by internal logic.
-                MUST NOT contain any variables that ARE supposed to be defined by internal logic.
-    """
-    def __init__(self, template: str, user_vars: dict):
-        self.template = template
-        self.user_vars = user_vars
-    
-    def _format(self, vars: dict):
-        """
-        This function takes the user-defined template, then "slots in" the data defined by internal logic.
-
-        Args:
-        vars -- This is the same as user_vars in the __init__ function.  A dictionary mapping values to be "slotted into"
-                the user-defined template.  The user must not define any key-value pairs that overlap with these values.
-                The user must ensure that all values within vars are present within the template string.
-        
-        Returns:
-        formatted_string -- a string containing all variables contained within both user_vars and vars, mapped to their 
-                            proper places defined by the template.
-        """
-        try:
-            formatted_string = self.template.format(**self.user_vars, **vars)
-            return formatted_string
-        except KeyError as e: #TODO: add logging functionality.
-            raise ValueError(f"Missing placeholder in template: {e}")
-
 class InferenceTree:
     """
     The main class that is called by users using the package
@@ -75,17 +38,17 @@ class InferenceTree:
                        for each comment as part of its processing step.  The second will be applied to aggregate data from all 
                        top-level-comment outputs along with root to make the final output.
         {
-            "question": put the summary question here 
+            "query": put the summary question here 
         }
     question_list -- a list of dictionaries containing the agent data.
         {
-            "question": put the question you want the agent to ask here as a string.
+            "query": put the question you want the agent to ask here as a string.
             "depth": tells the agent where it needs to be applied.  0 are top level comments, 1 are replies
                      to those comments, 2 are replies to replies, and so forth.
-            "order": NOT IMPLEMENTED YET
+            "order": NOT IMPLEMENTED YET, planned for version 0.2.0
         }
     model_params -- Use this dict variable to pass hyperparameters into the model, just as you normally would.
-    prompt_type -- default is "role".  Defines how the _Agent object formats the input to the llm.  Options are "question" and "role"
+    prompt_type -- default is "role".  Defines how the _Agent object formats the input to the llm.  Options are "query" and "role"
     children_per_summary -- Defines how many child node outputs are concatenated together for each summary.
     agent_input_format -- defines how the text is formatted before being passed to the agent formatter. 
     (
@@ -94,7 +57,7 @@ class InferenceTree:
     )
     agent_output_format -- defines how the generated output after agent processing is formatted before being saved.
     (
-    template = "<{any variable(s)}>{prev_output}<{any variable(s)}>{question}<{any variable(s)}>{gen}<{any variable(s)}>",
+    template = "<{any variable(s)}>{prev_output}<{any variable(s)}>{query}<{any variable(s)}>{gen}<{any variable(s)}>",
     user_vars -- a dictionary containing zero or more key-value pairs representing all user-defined variables in template.
     )
     children_summary_format -- defines how the output from the children summary step is formatted.
@@ -115,8 +78,8 @@ class InferenceTree:
         model_origin: str, 
         summarizer_list: list[dict] = [
             {
-                "question": "Summarize the text in 150 words or less.",
-                "depth": 1,
+                "query": "Summarize the text in 150 words or less.",
+                "depth": 0,
                 "input_template": "{text}",
                 "input_vars": {},
                 "output_template": "{prev_output}{sep}{gen}",
@@ -126,8 +89,8 @@ class InferenceTree:
 
             },
             {
-                "question": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",
-                "depth": 0,
+                "query": "Give a thorough report on the reddit post, along with its following text bodies containing information about the conversations it started.",
+                "depth": -1,
                 "input_template": "{prefix}{root}{sep}{comment_summaries}",
                 "input_vars": {
                     "prefix": "Here is the body text of the post:\n",
@@ -139,30 +102,30 @@ class InferenceTree:
         ],
         question_list: list[dict] = [
             {
-                "question": "Tell me what the subject of this conversation is, and the sentiment expressed about the subject.",
+                "query": "Tell me what the subject of this conversation is, and the sentiment expressed about the subject.",
                 "depth": 0,
                 "input_template": "{text_body}{summary_prefix}{summary}",
                 "input_vars": {
                     "summary_prefix": "\nHere is a summary of the response to this comment:\n"
                 },
-                "output_template": "{prev_output}{question_prefix}{question}{question_suffix}{gen}{sep}",
+                "output_template": "{prev_output}{query_prefix}{query}{query_suffix}{gen}{sep}",
                 "output_vars": {
-                    "question_prefix": "The output for the question \"",
-                    "question_suffix": "\" is:\n",
+                    "query_prefix": "The output for the question \"",
+                    "query_suffix": "\" is:\n",
                     "sep": "\n\n"
                 }
             },
             {
-                "question": "Tell me what this reply is talking about and what the author probably feels about the subject.",
+                "query": "Tell me what this reply is talking about and what the author probably feels about the subject.",
                 "depth": 1,
                 "input_template": "{text_body}{summary_prefix}{summary}",
                 "input_vars": {
                     "summary_prefix": "\nHere is a summary of the response to this comment:\n"
                 },
-                "output_template": "{prev_output}{question_prefix}{question}{question_suffix}{gen}{sep}",
+                "output_template": "{prev_output}{query_prefix}{query}{query_suffix}{gen}{sep}",
                 "output_vars": {
-                    "question_prefix": "The output for the question \"",
-                    "question_suffix": "\" is:\n",
+                    "query_prefix": "The output for the question \"",
+                    "query_suffix": "\" is:\n",
                     "sep": "\n\n"
                 }
             },
@@ -172,35 +135,15 @@ class InferenceTree:
         model_params: dict = {}, 
         graph: bool = True
     ):
-        self.agent_list = []
         self.children_per_summary = children_per_summary 
         self.graph = graph
 
         self.llm = _ModelWrapper(model_name=model_name, model_origin=model_origin, model_params=model_params)
         
         #Convert summarizer_list into wrapped agents
-        self.summarizer_list = []
-        for summarizer in summarizer_list:
-            self.summarizer_list.append(_Agent(
-                                            query=summarizer.get("question"),
-                                            depth=-99, 
-                                            prompt_type=prompt_type
-                                        ))
-
-        #Sets the agents according to user specifications in question_list
-        for question in question_list:
-            logger.debug(f"setting agent for question: '{question['question']}'")
-
-            question_order = question.get('order', 1)
-            if question["depth"] < 0 and question["depth"] != -99:
-                raise ValueError(f"The question {question} was set to an incorrect value")
-            self.agent_list.append(_Agent(
-                                        query=question.get("question"), 
-                                        depth=question["depth"], 
-                                        order=question_order,
-                                        prompt_type=prompt_type
-                                        )
-                                    )
+        self.summarizer_list = self._initialize_qlist(summarizer_list, prompt_type)
+        #NOTE: add error checking here.  Make sure that the len of _get_summarizer(1) and _get_summarizer(0) are both >=1
+        self.agent_list = self._initialize_qlist(question_list, prompt_type)
         logger.info("inference object initialized")
     
     def _split_into_batches(self, target: list, batch_size: int):
@@ -208,16 +151,33 @@ class InferenceTree:
         batches = [target[i:i + batch_size] for i in range(0, len(target), batch_size)]
         return batches
     
-    def _get_agents(self, tree_object, top_stack_id):
-        """returns the agents for the depth of the current top-of-stack node in a list"""
-        #Pull out the top-of-stack node object from the treelib
-        current_depth_agents = []
-        current_depth = tree_object.get_node(top_stack_id).data.depth
-        while len(current_depth_agents) == 0:
-            #Use list comprehension to store all agents at the correct depth in a list
-            current_depth_agents = [a for a in self.agent_list if a.depth == current_depth]
+    def _initialize_qlist(self, input: list[dict], prompt_type: str):
+        #Sets the agent objects according to user specifications
+        wrapped_list = []
+        for query in input:
+            logger.debug(f"setting agent object for question: '{query['query']}'")
+
+            if query.get("depth") < 0:
+                raise ValueError(f"The question {query} was set to an incorrect value")
+            wrapped_list.append(_Agent(query, prompt_type))
+        
+        #If the number of questions passed in equals the number of questions being returned, return the output
+        if len(input) == len(wrapped_list):
+            logger.debug(f"Call to function _initialize_qlist wrapped questions: {len(wrapped_list)}/{len(input)}")
+            return wrapped_list
+        else:
+            logger.error("call to _initialize_qlist failed!")
+            raise ValueError(f"Call to function _initialize_qlist wrapped questions: {len(wrapped_list)}/{len(input)}")
+
+    def _get_by_depth(self, agent_object_list: list[_Agent], depth: int, name: str = "agent"):
+        current_depth = depth
+        while True:
+            agent_objects = [a for a in agent_object_list if a.depth == current_depth]
+            if agent_objects:
+                return agent_objects
             current_depth -= 1
-        return current_depth_agents
+            if current_depth < -1:
+                raise ValueError(f"No {name}s found for depth {depth}")
     
     def _do_agent_processing(self, current_agents: list, tree_object, top_stack_id: str, prev_summary: str):
         """
@@ -236,24 +196,26 @@ class InferenceTree:
         #Pull out the top-of-stack node object from the treelib
         top_stack_node = tree_object.get_node(top_stack_id)
         output = ""
-        for a in current_agents:
-            text = self.agent_input_format._format({
+        for a in current_agents: #NOTE: is there a way to move input and output formatting into generate(pass in dictionaries?)
+            text = a.to_input_format({
                 "text_body": top_stack_node.data.body,
                 "summary": prev_summary
             })
             #Error Checking
             if text == "":
-                logger.error(f"\nAgent generation failed, empty string!")
-            output = self.agent_output_format._format({
+                logger.error(f"\nAgent input formatting failed, empty string!")
+            
+            gen = self.llm.generate(text, a)
+            output = a.to_output_format({
                 "prev_output": output,
-                "question": a.query,
-                "gen": self.llm.generate(text, a),
+                "query": a.query,
+                "gen": gen
             })
             if output == "":
-                print("Output returned an empty string!")
+                logger.warning("Output returned an empty string in agent processing loop!")
         return output
 
-    def _do_summary_processing(self, current_holding: list):
+    def _do_summary_processing(self, current_holding: list, summarizer: _Agent):
         """
         This function takes the agent output from a node's child nodes and uses the llm to get a summary.
 
@@ -267,17 +229,21 @@ class InferenceTree:
         if len(current_holding) > 0:
             #Split the stored outputs into batches to be given to the summarizer
             batch_holding = self._split_into_batches(current_holding, self.children_per_summary)
-            
             #Summarize current_holding
             output = ""
             for batch in batch_holding:
                 batch_text = "\nNext Summary Text:\n".join(batch)
+                input = summarizer.to_input_format({"text": batch_text})
 
-                output = self.children_summary_format._format({
+                gen = self.llm.generate(input, summarizer)
+
+                output = summarizer.to_output_format({
                     "prev_output": output,
-                    "gen": self.llm.generate(batch_text, self.summarizer_list[0])
+                    "gen": gen
                 })
             return output
+        else:
+            logger.warning("_do_summary_processing was called without children to summarize!  May indicate a post without comments")
 
     def _do_summary_and_agent(self, tree):
         """
@@ -288,7 +254,7 @@ class InferenceTree:
         tree -- The tree containing the conversation data nodes.
         
         Returns:
-        final_output -- A string containing the output from the final summary generation step.
+        final_output -- A list of string reports, with one entry per summarizer with depth of -1
         """
         output_stack = deque()
         temp_holding = defaultdict(list)
@@ -309,18 +275,29 @@ class InferenceTree:
             if len(current_children) > len(current_holding):
                 output_stack.append(current_children[len(current_holding)].identifier)
             else:
-                logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
-                if self.graph: g.update(tree.get_node(output_stack[-1]).data.depth)
+                top_stack_node = tree.get_node(output_stack[-1]).data
 
-                summary = self._do_summary_processing(current_holding)
+                logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
+                if self.graph: g.update(top_stack_node.depth)
+
+                children_depth_summarizer = self._get_by_depth(self.summarizer_list, top_stack_node.depth, name="summarizer")[0]
+                summary = self._do_summary_processing(current_holding, children_depth_summarizer)
 
                 #if the current top-of-stack is root, return the result
                 if output_stack[-1] == tree.root:
-                    formatted_output = self.final_summary_input_format._format({
-                        "root": tree.get_node(output_stack[-1]).data.body,
-                        "comment_summaries": summary
-                    })
-                    final_output = self.llm.generate(formatted_output, self.summarizer_list[1])
+                    final_summarizers = self._get_by_depth(self.summarizer_list, -1, name="summarizer")
+                    final_output = []
+                    for s in final_summarizers:
+                        final_input = s.to_input_format({
+                            "root": top_stack_node.body,
+                            "comment_summaries": summary
+                        })
+
+                        final_gen = self.llm.generate(final_input, s)
+
+                        final_output.append(s.to_output_format({
+                            "gen": final_gen
+                        }))
                     return final_output
 
                 #Clear the now-used entry in temp-holding
@@ -330,14 +307,14 @@ class InferenceTree:
                     logger.debug(f"Node {output_stack[-1]} has no children, skipping tempholding slot clearing")
 
                 #With context from summary, apply depth-appropriate agent(s) to top-of-stack node
-                current_agents = self._get_agents(tree, output_stack[-1])
+                current_agents = self._get_by_depth(self.agent_list, top_stack_node.depth)
                 current_agent_output = self._do_agent_processing(current_agents, tree, output_stack[-1], summary)             
                 
                 #append output from agents to the temp_holding level keyed to the new top-of-stack
-                temp_holding[tree.get_node(output_stack[-1]).data.parent_id].append(current_agent_output)
+                temp_holding[top_stack_node.parent_id].append(current_agent_output)
 
                 if current_agent_output == "":
-                    print(f"current_agent_output is an empty string for node {output_stack[-1]} and was added as a child of node {tree.get_node(output_stack[-1]).data.parent_id}")   
+                    print(f"current_agent_output is an empty string for node {output_stack[-1]} and was added as a child of node {top_stack_node.parent_id}")   
 
                 #Remove completed node from top of the stack
                 output_stack.pop()
@@ -351,7 +328,7 @@ class InferenceTree:
         a treelib structure then passing data to _do_summary_and_agent for logic handling
         
         Args:
-        data -- the conversation thread.  No datatype is defined because unification of datatypes is handled lower in the logic.
+        data -- the conversation thread.  No data type hint is defined because unification of datatypes is handled lower in the logic.
         data_type -- a string that defines what format the data was passed in.  Can be "json", "praw", or "psaw"
 
         Returns:
