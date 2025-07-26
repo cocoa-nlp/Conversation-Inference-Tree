@@ -1,19 +1,19 @@
 import logging
 import time
 import os
+from appdirs import user_log_dir
 
 # Time format for filenames
 t = time.localtime()
-current_time = time.strftime("%H-%M-%S", t)  # Avoid colon ":" in filenames (especially on Windows)
+current_time = time.strftime("%H-%M-%S", t)
 
 # Directory setup
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_DIR = os.path.join(BASE_DIR, '.logs')
-os.makedirs(LOG_DIR, exist_ok=True)
+BASE_DIR = user_log_dir("ConversationInferenceTree")
+os.makedirs(BASE_DIR, exist_ok=True)
 
 # File paths (use f-strings for actual variable substitution)
-LOG_FILE = os.path.join(LOG_DIR, f'log_{current_time}.log')
-PROGRESS_FILE = os.path.join(LOG_DIR, f'progress_{current_time}.log')
+LOG_FILE = os.path.join(BASE_DIR, f'log_{current_time}.log')
+PROGRESS_FILE = os.path.join(BASE_DIR, f'progress_{current_time}.log')
 
 # Logger for general debug/info
 logger = logging.getLogger('main_logger')

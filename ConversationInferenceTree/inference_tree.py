@@ -1,5 +1,6 @@
 import praw
 import os
+import json
 from collections import deque, defaultdict
 
 from .tree import _Tree
@@ -7,6 +8,8 @@ from .agent import _Agent
 from .model_wrapper import _ModelWrapper
 from .logger import logger
 from cligraph import CLIGraph
+
+
 
 class InferenceTree:
     """
@@ -34,43 +37,75 @@ class InferenceTree:
     model_origin -- selects a model handler.  If "hf" is passed in, then model_name model is a 
                     huggingface model.  If "openai" is passed in, then the questions are treated
                     as calls to the OpenAI API.
-    summarizer_list -- a list of dictionaries containing two summary entries.  The first will be applied to the children outputs
-                       for each comment as part of its processing step.  The second will be applied to aggregate data from all 
-                       top-level-comment outputs along with root to make the final output.
-        {
-            "query": put the summary question here 
-        }
-    question_list -- a list of dictionaries containing the agent data.
-        {
-            "query": put the question you want the agent to ask here as a string.
-            "depth": tells the agent where it needs to be applied.  0 are top level comments, 1 are replies
-                     to those comments, 2 are replies to replies, and so forth.
-            "order": NOT IMPLEMENTED YET, planned for version 0.2.0
-        }
-    model_params -- Use this dict variable to pass hyperparameters into the model, just as you normally would.
-    prompt_type -- default is "role".  Defines how the _Agent object formats the input to the llm.  Options are "query" and "role"
-    children_per_summary -- Defines how many child node outputs are concatenated together for each summary.
-    agent_input_format -- defines how the text is formatted before being passed to the agent formatter. 
-    (
-    template -- "<{any variable(s)}>{text_body}<{any variable(s)}>{summary}<{any variable(s)}>",
-    user_vars -- a dictionary containing zero or more key-value pairs representing all user-defined variables in template.
-    )
-    agent_output_format -- defines how the generated output after agent processing is formatted before being saved.
-    (
-    template = "<{any variable(s)}>{prev_output}<{any variable(s)}>{query}<{any variable(s)}>{gen}<{any variable(s)}>",
-    user_vars -- a dictionary containing zero or more key-value pairs representing all user-defined variables in template.
-    )
-    children_summary_format -- defines how the output from the children summary step is formatted.
-    (
-    template = "<{any variable(s)}>{prev_output}<{any variable(s)}>{gen}<{any variable(s)}>",
-    user_vars -- a dictionary containing zero or more key-value pairs representing all user-defined variables in template.
-    )
-    final_input_summary_format -- defines how the root and top-level-comment output is combined before generation step.
-    (
-    template = "<{any variable(s)}>{root}<{any variable(s)}>{comment_summaries}<{any variable(s)}>",
-    user_vars -- a dictionary containing zero or more key-value pairs representing all user-defined variables in template.    
-    )
-    graph -- default True: a boolean value that determines whether a graph displaying a live view of the current processing node depth is displayed.
+    summarizer_list -- A list of dictionaries defining the behavior and structure of the summarizing agents.  When manually initialized,
+                       the user may provide two or more summarizers, one having a depth of -1 and one of 0.  There are two main pieces defined
+                       within the dictionary; the actual agent, and a pair of formatters that can optionally be set by the user to have more
+                       fine-tuned control over prompt process.  Below are the keys that must be defined in order to add a summarizer:
+    {
+        "query": A string containing the query that will be asked upon the calling of this _Agent object.  Depending on what prompt-type 
+                 the user defines, this should be adjusted to fit it.  For "role", this should be an instruction sentence, such as "Summarize
+                 this content in 100 words".  For "question", this would be concatenated together with text content to make one large string
+                 to be passed to the model.
+        "depth": An int.  Depth for summarizers is different from the agents of question_list.  There must be at least one summarizer with a depth of -1 
+                 and one with 0.  -1 depth defines the summarizer that will create the final report that is passed back as the final product, 
+                 and the user may define as many as they wish, with a discrete report being generated and appended to the return list for each 
+                 summarizer respectively.  For summarizers 0 and up, the user may define one of each, with each one being applied to aggregate 
+                 the data for agent outputs at its same depth.  For example, top-level-comments have a depth of 0, so the summarizer with a depth
+                 of 0 will be applied to them.  Depth 1 would be applied to the replies to that comment, so forth and so on.  If a set of comments
+                 at a given depth must be summarized together but do not have a summmarizer at that depth, the package will iterate towards 0 one
+                 depth at a time until a summarizer is found, meaning that the summarizer with the greatest depth will act as a catchall.
+        "input_template": This uses the formatting function provided by python.  This should be a string that looks like this: "{var1}{var2}{etc...}"
+                          Any number of variables may be defined in the template, but there are mandatory variables that must be added that allow the processed text
+                          to be added in.  
+                          For summarizers with a depth of -1, the user MUST include {root} and {comment_summaries}.  
+                              root -- Passes in the body text of the thread post body.
+                              comment_summaries -- passes in the summarized content of all top-level variables.  
+                          For all summarizers with a depth of 0 and up, the mandatory variable is {text}.
+                              text: the concatenated together totality of the agent outputs that this summarizer handles.
+        "input_vars": A dictionary of strings.  If the user adds any non-mandatory variables in the template, those variables MUST be represented as a key in
+                      this dictionary.  For example, if we take the template "{var1}{text}{var2}", and this is the input template for a summarizer of depth 0, 
+                      "text would be the mandatory variable, so var1 and var2 must both be represented like the following:
+                      {
+                        "var1": "User defined text..."
+                        "var2": "more user text..."
+                      }
+        "output_template": A dictionary in the same form as input_template, but allows the user to define how the string will be saved as just AFTER llm generation
+                           mandatory variables for summarizers with depth -1 are {prev_output} and {gen}.  Good for defining how batched summary rounds are concatenated
+                           together.
+                               prev_output -- A string that starts as "".  Holds the aggregated content from previous batches sent to the summarizer.  If this batch is not
+                                              the last one, the product of this formatting will be part of the prev_output for the next output_template round.
+                               gen -- The direct string output from the llm generation step. #NOTE: needs definition for other summarizer(just gen for mandatory)
+        "output_vars": Same rules as input vars.  Account for all user-defined variables here 
+    }
+    question_list -- a dictionary similar to summarizer list.  However, this defines the agents that will apply questions to the reddit thread at given depths.
+                     Must define at least one agent at depth 0(or more than one), and then may define as many agents per depth as wished.  If more than one agent is
+                     defined for a depth, the agent step will loop through once per question, with the all outputs being aggregated together into a string at the end.
+    {
+        "query": A string containing the query that will be asked upon the calling of this _Agent object.  Depending on what prompt-type 
+                the user defines, this should be adjusted to fit it.  For "role", this should be an instruction sentence, such as "Summarize
+                this content in 100 words".  For "question", this would be concatenated together with text content to make one large string
+                to be passed to the model.
+        "depth": An int.  Defines at what depth of the conversation this agent's question will be used.  Agents with a depth of 0 will be applied to top-level-comments, 
+                depth 1 will be used on replies, depth 2 on replies of replies, etc...
+        "input_template": Same rules as input_template for summarizer's input_template.  Mandatory variables are {text_body} and {summary}.
+            text_body -- the text body content of the comment the agent is being applied to.
+            summary -- the summarized content of the reply's children.
+        "input_vars": Same rules as summarizer's input_vars
+        "output_template": Same rules as summarizer's output_template.  Mandatory variables are {prev_output}, {query}, and {gen}
+                        prev_output -- A string that starts as "".  Holds the aggregated content all current_depth agents.  If this agent is not
+                                        the last one, the product of this formatting will be part of the prev_output for the next output_template round.
+                        query -- The question that the agent asked during the generation step.  Allows for context to be added to output.
+                        gen -- The direct string output from the llm generation step.
+        "output_vars"  Same rules as summarizer's output_vars
+    }
+    prompt_type -- "question" or "role".  Defines whether how the llm will recieve the prompt.  "role" uses the "user", "content", "system", "content" dictionary style.
+                   "question" uses the large string method, with the question and the text input being appended together and passed in raw.  Should be set in accordance with
+                   the model chosen and the agents defined.
+    children_per_summary -- defines how many child agent outputs will be aggregated into a batch per summarizer round.  Default 5, larger values provide greater context but 
+                            may overwhelm model, smaller values are better for smaller models.
+    model_params -- A dictionary containing all hyperparameters the user wishes to use with the model.  Define in the same way one would do if working with the model directly.
+    graph -- default True: a boolean value that determines whether a graph displaying a live view of the current processing node depth is displayed.  It is recommended to turn
+                           this value to false when added into a fully automated script.
     """ 
     def __init__(
         self, 
@@ -157,7 +192,7 @@ class InferenceTree:
         for query in input:
             logger.debug(f"setting agent object for question: '{query['query']}'")
 
-            if query.get("depth") < 0:
+            if query.get("depth") < -1:
                 raise ValueError(f"The question {query} was set to an incorrect value")
             wrapped_list.append(_Agent(query, prompt_type))
         
@@ -196,7 +231,7 @@ class InferenceTree:
         #Pull out the top-of-stack node object from the treelib
         top_stack_node = tree_object.get_node(top_stack_id)
         output = ""
-        for a in current_agents: #NOTE: is there a way to move input and output formatting into generate(pass in dictionaries?)
+        for a in current_agents:
             text = a.to_input_format({
                 "text_body": top_stack_node.data.body,
                 "summary": prev_summary
@@ -280,7 +315,7 @@ class InferenceTree:
                 logger.debug(f"processing for {output_stack[-1]}.  Children: {len(current_holding)}")
                 if self.graph: g.update(top_stack_node.depth)
 
-                children_depth_summarizer = self._get_by_depth(self.summarizer_list, top_stack_node.depth, name="summarizer")[0]
+                children_depth_summarizer = self._get_by_depth(self.summarizer_list, top_stack_node.depth + 1, name="summarizer")[0]
                 summary = self._do_summary_processing(current_holding, children_depth_summarizer)
 
                 #if the current top-of-stack is root, return the result

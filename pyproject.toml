@@ -11,7 +11,7 @@ license = { file = "LICENSE" }
 authors = [{ name = "Brayden Cloutier"}]
 requires-python = ">=3.8"
 dependencies = [
-    "cligraph==0.1.2",
+    "cligraph==0.1.4",
     "huggingface_hub==0.32.4",
     "nvidia_ml_py==12.575.51",
     "openai==1.97.0",

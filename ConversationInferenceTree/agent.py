@@ -12,9 +12,6 @@ class _Agent:
     
     Args:
         query: the question that the agent will ask.
-        order: possible future functionality that will allow the user to specify same-depth
-               ordering of questions, allowing a query to have the context of an earlier 
-               query's output.
         depth: defines at what depth a given agent should be applied.  A depth of -1 signifies
                the summarizer to be used on child node outputs.  A 0 signifies top level comments,
                1s are replies to the comments, 2 are replies to replies, etc...
@@ -22,7 +19,6 @@ class _Agent:
     def __init__(self, user_content, prompt_type):
         self.query = user_content.get("query")
         self.depth = user_content.get("depth")
-        self.order = user_content.get("order", 1)
         #Prompt_type is to be retrieved directly by outside functions
         self.prompt_type = prompt_type
 
@@ -75,7 +71,7 @@ class Formatter:
     
     def _format(self, vars: dict):
         """
-        This function takes the user-defined template, then "slots in" the data defined by internal logic.
+        This function takes the user-defined template, then "slots in" the strings defined by internal logic.
 
         Args:
         vars -- This is the same as user_vars in the __init__ function.  A dictionary mapping values to be "slotted into"
