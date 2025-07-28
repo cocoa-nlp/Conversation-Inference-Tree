@@ -61,7 +61,7 @@ class InferenceTree:
                               root -- Passes in the body text of the thread post body.
                               comment_summaries -- passes in the summarized content of all top-level variables.  
                           For all summarizers with a depth of 0 and up, the mandatory variable is {text}.
-                              text: the concatenated together totality of the agent outputs that this summarizer handles.
+                              text -- the concatenated together totality of the agent outputs that this summarizer handles.
         "input_vars": A dictionary of strings.  If the user adds any non-mandatory variables in the template, those variables MUST be represented as a key in
                       this dictionary.  For example, if we take the template "{var1}{text}{var2}", and this is the input template for a summarizer of depth 0, 
                       "text would be the mandatory variable, so var1 and var2 must both be represented like the following:
@@ -139,7 +139,7 @@ class InferenceTree:
             {
                 "query": "Tell me what the subject of this conversation is, and the sentiment expressed about the subject.",
                 "depth": 0,
-                "input_template": "{text_body}{summary_prefix}{summary}",
+                "input_template": "{text_body}{summary_prefix}{summary}", 
                 "input_vars": {
                     "summary_prefix": "\nHere is a summary of the response to this comment:\n"
                 },

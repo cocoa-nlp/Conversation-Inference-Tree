@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "Conversation_Inference_Tree"
+name = "ConversationInferenceTree"
 version = "0.1.0"
 description = "This package was made to allow a user to generate a summarized explanation of any provided reddit thread, by applying a series of user-created questions in a predetermined logical sequence.  The intended use case is to allow the user to extract the underlying reasoning of conversations about a given subject at a massive scale, then save those inferences to create a dataset or report."
 readme = "README.md"

@@ -43,5 +43,4 @@ for count, s in summary:
 
 ## Documentation
 - [Overview](docs/overview.md)
-- [Usage\ Examples](docs/usage.md)
-- [API\ Reference](docs/api.md)
+- [Usage\ Examples](ConversationInferenceTree/docs/usage.md)
