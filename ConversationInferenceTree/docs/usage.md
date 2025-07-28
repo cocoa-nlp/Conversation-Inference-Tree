@@ -128,9 +128,13 @@ inference = InferenceTree(
 #### Mandatory Template Variables
 Depending on the depth of the summarizer, certain variables must be present in the input_template:
 - Depth 0 or higher: {text}
+
 -- text -- the concatenated together totality of the agent outputs that this summarizer handles.
+  
 - Depth -1: {root} and {comment_summaries}
+
 -- root -- Passes in the body text of the thread post body.
+  
 -- comment_summaries -- passes in the summarized content of all top-level variables.  
 
 These are injected automatically by the system. Any additional placeholders must be accounted for in input_vars.
@@ -182,13 +186,18 @@ Depending on the agent’s function, certain variables must be present in the in
 
 In the input_template:
 - For all depths:
+
 -- {text_body} — the raw content of the comment the agent is analyzing
+
 -- {summary} — the summarized output from that comment's children
 
 In the output_template:
 - For all depths:
+
 -- {prev_output} — accumulates output across multiple agents at the same depth
+
 -- {query} — the agent’s question string (for context)
+
 -- {gen} — the generated result returned by the model
 
 These variables are also injected automatically by the system. If you include any custom placeholders (e.g., {summary_header}, {query_prefix}), they must be defined in input_vars or output_vars.
