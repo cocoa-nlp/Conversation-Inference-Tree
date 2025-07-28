@@ -121,3 +121,4 @@ class _ModelWrapper:
                 return response['choices'][0]['message']['content']
         else:
             logger.error("model failed generation step")
+            raise RuntimeError("Model generation failed due to unrecognized model_origin.")

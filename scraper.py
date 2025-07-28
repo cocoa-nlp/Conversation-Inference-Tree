@@ -19,11 +19,11 @@ reddit = praw.Reddit(
 )
 
 # Make an output directory
-os.makedirs("Conversation-Inference-Tree/posts", exist_ok=True)
+os.makedirs("ConversationInferenceTree/posts", exist_ok=True)
 
 # Get top 10 hot posts from r/teenagers
 subreddit = reddit.subreddit("Teachers")
-for post in subreddit.hot(limit=10):
+for post in subreddit.hot(limit=5):
     post.comments.replace_more(limit=0)  # Flatten comments
 
     post_data = {
@@ -48,7 +48,7 @@ for post in subreddit.hot(limit=10):
         })
 
     # Write to JSON file
-    filename = f"/home/brayden/GitHub/Conversation-Inference-Tree/Conversation-Inference-Tree/posts/post_{post.id}.json"
+    filename = f"/home/umflint.edu/brayclou/ConversationInferenceTree/posts/post_{post.id}.json"
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(post_data, f, indent=4, ensure_ascii=False)
 

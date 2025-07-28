@@ -32,9 +32,10 @@ inference_object = InferenceTree(model, "hf")
 summary = inference_object.process_thread(thread, data_type="json")
 
 #Save summary
-text_file = open(thread["id"] + ".txt", "w")
-text_file.write(summary)
-text_file.close()
+for count, s in summary:
+    text_file = open(f"{thread["id"]}_Report{count}.txt", "w")
+    text_file.write(s)
+    text_file.close()
 ```
 
 ## Liscense
@@ -42,5 +43,4 @@ text_file.close()
 
 ## Documentation
 - [Overview](docs/overview.md)
-- [Usage\ Examples](docs/usage.md)
-- [API\ Reference](docs/api.md)
+- [Usage\ Examples](ConversationInferenceTree/docs/usage.md)
